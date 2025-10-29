@@ -1,0 +1,1 @@
+repsupply provides product listings sourced from various suppliers. When you find a product you want to buy, you can choose one of the trusted agents listed on the product page. The agent will then assist you in purchasing, handling payments, and shipping the item. 
