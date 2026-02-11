@@ -14,8 +14,6 @@ import { Button } from "@/components/ui/Button";
 import { products } from "@/lib/data/products";
 import Image from "next/image";
 import Link from "next/link";
-import { Footer } from "@/components/Footer";
-import { ScrollToTop } from "@/components/ScrollToTop";
 import { useState } from "react";
 
 const featuredProducts = [
@@ -193,64 +191,62 @@ export default function Home() {
             </div>
 
             {/* TRENDING SEARCHES */}
-            <div className="mt-6">
-              <div className="trending-scroll flex gap-3 overflow-x-auto scrollbar-hide pb-2 px-2">
-                {[
-                  "Nike",
-                  "Supreme",
-                  "Jordan",
-                  "Yeezy",
-                  "Chrome Hearts",
-                  "Bape",
-                  "Stussy",
-                  "Palace",
-                  "Off-White",
-                  "Stone Island",
-                  "Fear of God",
-                  "Travis Scott",
-                  "Louis Vuitton",
-                  "Gucci",
-                  "Balenciaga",
-                  "Moncler",
-                  "Canada Goose",
-                  "The North Face",
-                  "Carhartt",
-                  "Represent",
-                ].map((term) => (
-                  <span
-                    key={term}
-                    className="bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full text-text-secondary hover:text-white cursor-pointer transition-all duration-200 text-sm border border-white/10 whitespace-nowrap flex-shrink-0"
-                  >
-                    {term}
-                  </span>
-                ))}
+            <div className="mt-6 relative flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const container = document.querySelector(".trending-scroll");
+                  if (container)
+                    container.scrollBy({ left: -200, behavior: "smooth" });
+                }}
+                className="hidden lg:flex w-7 h-7 rounded-lg bg-white/5 border border-white/10 items-center justify-center hover:bg-white/10 transition-colors flex-shrink-0 cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5 text-text-muted" />
+              </button>
+              <div className="relative flex-1 overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none" />
+                <div className="trending-scroll flex gap-2 overflow-x-auto scrollbar-hide pb-1 px-2">
+                  {[
+                    "Nike",
+                    "Supreme",
+                    "Jordan",
+                    "Yeezy",
+                    "Chrome Hearts",
+                    "Bape",
+                    "Stussy",
+                    "Palace",
+                    "Off-White",
+                    "Stone Island",
+                    "Fear of God",
+                    "Travis Scott",
+                    "Louis Vuitton",
+                    "Gucci",
+                    "Balenciaga",
+                    "Moncler",
+                    "Canada Goose",
+                    "The North Face",
+                    "Carhartt",
+                    "Represent",
+                  ].map((term) => (
+                    <span
+                      key={term}
+                      className="bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full text-text-secondary hover:text-white cursor-pointer transition-all duration-200 text-sm border border-white/10 whitespace-nowrap flex-shrink-0"
+                    >
+                      {term}
+                    </span>
+                  ))}
+                </div>
               </div>
-
-              {/* Scroll Buttons - Desktop only */}
-              <div className="hidden lg:flex justify-between items-center px-2">
-                <button
-                  onClick={() => {
-                    const container =
-                      document.querySelector(".trending-scroll");
-                    if (container)
-                      container.scrollBy({ left: -200, behavior: "smooth" });
-                  }}
-                  className="w-6 h-6 bg-white/5 hover:bg-white/25 hover:scale-105 rounded-full flex items-center justify-center opacity-40 hover:opacity-100 transition-all duration-200 cursor-pointer"
-                >
-                  <ChevronLeft className="w-3 h-3 text-white/40 hover:text-white transition-colors duration-200" />
-                </button>
-                <button
-                  onClick={() => {
-                    const container =
-                      document.querySelector(".trending-scroll");
-                    if (container)
-                      container.scrollBy({ left: 200, behavior: "smooth" });
-                  }}
-                  className="w-6 h-6 bg-white/5 hover:bg-white/25 rounded-full flex items-center justify-center opacity-40 hover:opacity-100 transition-all duration-200 cursor-pointer"
-                >
-                  <ChevronRight className="w-3 h-3 text-white/40 hover:text-white transition-colors duration-200" />
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  const container = document.querySelector(".trending-scroll");
+                  if (container)
+                    container.scrollBy({ left: 200, behavior: "smooth" });
+                }}
+                className="hidden lg:flex w-7 h-7 rounded-lg bg-white/5 border border-white/10 items-center justify-center hover:bg-white/10 transition-colors flex-shrink-0 cursor-pointer"
+              >
+                <ChevronRight className="w-3.5 h-3.5 text-text-muted" />
+              </button>
             </div>
           </div>
         </div>
@@ -531,11 +527,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Footer */}
-      <Footer />
-
-      {/* Scroll to Top Button */}
-      <ScrollToTop />
     </div>
   );
 }

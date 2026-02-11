@@ -1,6 +1,6 @@
 "use client";
 
-import { Footer } from "@/components/Footer";
+
 
 export default function PrivacyPage() {
   return (
@@ -22,8 +22,7 @@ export default function PrivacyPage() {
           </section>
         </div>
       </div>
-       <div className="mt-20">
-         <Footer />
+      <div className="mt-20">
       </div>
     </div>
   );

@@ -45,39 +45,38 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Reset Card */}
-        <div className="glass rounded-3xl p-8 animate-scale-in">
+        <div className="bg-white/5 border border-white/5 backdrop-blur-md rounded-3xl p-8 animate-scale-in">
           {!isSent ? (
             <>
               <Link
                 href="/login"
-                className="inline-flex items-center text-text-muted hover:text-text-primary mb-6 transition-colors"
+                className="inline-flex items-center text-xs text-text-muted hover:text-white mb-6 transition-colors"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-3.5 h-3.5 mr-2" />
                 Back to Login
               </Link>
 
-              <h1 className="text-2xl font-bold text-text-primary text-center mb-2">
+              <h1 className="text-2xl font-bold text-white text-center mb-2">
                 Forgot Password?
               </h1>
-              <p className="text-text-muted text-center mb-8">
-                Enter your email and we&apos;ll send you instructions to reset
-                your password.
+              <p className="text-text-secondary text-center mb-8 text-sm">
+                Enter your email to reset.
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm text-text-secondary">
+                  <label className="text-xs font-medium text-text-secondary">
                     Email Address
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
                       required
-                      className="w-full bg-bg-card/50 border border-white/10 text-text-primary rounded-xl py-3.5 pl-12 pr-4 outline-none focus:border-bg-secondary transition-colors placeholder:text-text-muted"
+                      className="w-full bg-black/20 border border-white/10 text-white rounded-xl py-3 pl-11 pr-4 outline-none focus:border-white/30 transition-colors placeholder:text-text-muted text-sm"
                     />
                   </div>
                 </div>
@@ -86,13 +85,13 @@ export default function ForgotPasswordPage() {
                   type="submit"
                   disabled={isLoading}
                   size="lg"
-                  className="w-full"
+                  className="w-full bg-white text-black hover:bg-white/90 border-none transition-all active:scale-[0.98] font-bold"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                   ) : (
                     <>
-                      Send Instructions
+                      Reset Password
                       <ArrowRight className="w-5 h-5" />
                     </>
                   )}
@@ -104,14 +103,14 @@ export default function ForgotPasswordPage() {
               <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle className="w-8 h-8 text-success" />
               </div>
-              <h2 className="text-2xl font-bold text-text-primary mb-2">
+              <h2 className="text-2xl font-bold text-white mb-2">
                 Check your email
               </h2>
-              <p className="text-text-muted mb-8">
+              <p className="text-text-secondary text-sm mb-8">
                 We&apos;ve sent password reset instructions to <br />
-                <span className="text-text-primary font-medium">{email}</span>
+                <span className="text-white font-medium">{email}</span>
               </p>
-              <Button onClick={() => setIsSent(false)} variant="ghost">
+              <Button onClick={() => setIsSent(false)} variant="ghost" className="text-text-muted hover:text-white">
                 Try different email
               </Button>
             </div>

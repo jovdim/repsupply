@@ -1,6 +1,6 @@
 "use client";
 
-import { Footer } from "@/components/Footer";
+
 
 export default function TermsPage() {
   return (
@@ -23,7 +23,6 @@ export default function TermsPage() {
         </div>
       </div>
       <div className="mt-20">
-         <Footer />
       </div>
     </div>
   );

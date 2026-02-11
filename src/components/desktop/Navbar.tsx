@@ -169,7 +169,7 @@ export const Navbar = () => {
               }`}
             >
               <User className="w-4 h-4" />
-              <span>My Profile</span>
+              <span>Profile</span>
             </Link>
           </div>
         </div>

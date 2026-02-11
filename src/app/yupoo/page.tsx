@@ -1,214 +1,151 @@
 "use client";
 
-import {
-  ExternalLink,
-  Search,
-  Filter,
-  Star,
-  Eye,
-  CheckCircle,
-  Smartphone,
-} from "lucide-react";
+import { Search, ExternalLink } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
-import { Footer } from "@/components/Footer";
-import { Button } from "@/components/ui/Button";
 
+// Simplified Yupoo Store Data
 const yupooStores = [
   {
     id: 1,
     name: "TopShoeFactory",
-    specialty: "Sneakers & Shoes",
-    rating: 4.9,
-    reviews: 2340,
     image: "/test-product-images/img1.avif",
-    products: 856,
-    verified: true,
     link: "https://topshoefactory.x.yupoo.com/",
   },
   {
     id: 2,
     name: "FashionReps Seller",
-    specialty: "Streetwear & Hoodies",
-    rating: 4.8,
-    reviews: 1890,
     image: "/test-product-images/img2.avif",
-    products: 1243,
-    verified: true,
     link: "https://fashionreps.x.yupoo.com/",
-  },
-  // Add more sellers as needed...
-];
-
-const featuredItems = [
-  {
-    id: 1,
-    name: "Nike Dunk Low Panda",
-    price: "¥299",
-    seller: "TopShoeFactory",
-    image: "/test-product-images/img1.avif",
-    views: 12400,
-  },
-  {
-    id: 2,
-    name: "Essentials Hoodie",
-    price: "¥189",
-    seller: "FashionReps",
-    image: "/test-product-images/img2.avif",
-    views: 8900,
   },
   {
     id: 3,
-    name: "Chrome Hearts Tee",
-    price: "¥159",
-    seller: "DesignerHub",
+    name: "DesignerHub",
     image: "/test-product-images/img3.avif",
-    views: 7600,
+    link: "https://designerhub.x.yupoo.com/",
   },
   {
     id: 4,
-    name: "Voltage Cargos",
-    price: "¥259",
-    seller: "StreetStyle",
+    name: "StreetStyle",
     image: "/test-product-images/img4.avif",
-    views: 5400,
+    link: "https://streetstyle.x.yupoo.com/",
+  },
+  {
+    id: 5,
+    name: "LuxuryReps",
+    image: "/test-product-images/img5.avif",
+    link: "https://luxuryreps.x.yupoo.com/",
+  },
+  {
+    id: 6,
+    name: "SneakerKing",
+    image: "/test-product-images/img1.avif", // Reuse existing image for demo
+    link: "https://sneakerking.x.yupoo.com/",
+  },
+  {
+    id: 7,
+    name: "HypeBeast",
+    image: "/test-product-images/img2.avif",
+    link: "https://hypebeast.x.yupoo.com/",
+  },
+  {
+    id: 8,
+    name: "RepLife",
+    image: "/test-product-images/img3.avif",
+    link: "https://replife.x.yupoo.com/",
   },
 ];
 
 export default function YupooPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
+  const filteredStores = yupooStores.filter((store) =>
+    store.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="min-h-screen pt-8">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-12 animate-fade-in-down">
-          <h1 className="text-4xl md:text-5xl font-bold font-[var(--font-poetsen-one)] mb-4">
-            <span className="gradient-text">Yupoo Store</span>
-          </h1>
-          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-            Browse verified Yupoo sellers and find quality reps from trusted
-            sources
-          </p>
-        </div>
-
-        {/* Search Bar */}
-        <div className="max-w-2xl mx-auto mb-12 animate-fade-in-up stagger-1">
-          <div className="glass rounded-2xl p-2 flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-3 px-4">
-              <Search className="w-5 h-5 text-text-muted" />
-              <input
-                type="text"
-                placeholder="Search sellers or products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-text-primary outline-none placeholder:text-text-muted py-3"
-              />
+    <div className="min-h-screen">
+      {/* Header Container */}
+      <div className="sticky top-0 z-40 bg-bg-primary/95 backdrop-blur-md border-b border-white/5 pt-4 pb-4 md:pt-24 md:static md:bg-transparent md:border-none md:p-0">
+         <div className="max-w-[1600px] mx-auto px-4 md:px-12 lg:px-20 xl:px-24">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-3xl md:text-5xl font-bold font-[var(--font-poetsen-one)] text-white mb-2">
+                    Yupoo Stores
+                    </h1>
+                    <p className="text-text-secondary text-sm md:text-base max-w-2xl">
+                    Browse verified Yupoo albums directly.
+                    </p>
+                </div>
+                
+                {/* Search Bar */}
+                <div className="glass rounded-xl p-1.5 flex items-center gap-2 w-full md:w-80">
+                    <div className="flex-1 flex items-center gap-2 px-3">
+                        <Search className="w-4 h-4 text-text-muted" />
+                        <input
+                            type="text"
+                            placeholder="Search stores..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-transparent text-sm text-text-primary outline-none placeholder:text-text-muted py-1.5"
+                        />
+                    </div>
+                </div>
             </div>
-            <Button className="px-6 py-3">
-              <Filter className="w-4 h-4" />
-              Filter
-            </Button>
-          </div>
-        </div>
+         </div>
+      </div>
 
-        {/* Verified Sellers */}
-        <section className="mb-16">
-          <h2 className="text-2xl font-bold text-text-primary font-[var(--font-poetsen-one)] mb-6 flex items-center gap-2">
-            <CheckCircle className="w-6 h-6 text-success" /> Verified Sellers
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {yupooStores.map((store, index) => (
-              <a
+      {/* Grid Content */}
+      <div className="max-w-[1600px] mx-auto px-4 md:px-12 lg:px-20 xl:px-24 pb-20">
+        {filteredStores.length > 0 ? (
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6">
+            {filteredStores.map((store, index) => (
+                <a
                 href={store.link}
                 target="_blank"
                 rel="noopener noreferrer"
                 key={store.id}
-                className={`group glass rounded-2xl overflow-hidden card-hover animate-fade-in-up stagger-${(index % 6) + 1} block`}
-              >
-                <div className="relative h-32 bg-gradient-to-br from-bg-secondary/20 to-bg-card">
-                  <Image
+                className="group relative aspect-square bg-white/5 border border-white/5 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer block animate-fade-in-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+                >
+                {/* Image */}
+                <Image
                     src={store.image}
                     alt={store.name}
                     fill
-                    className="object-cover opacity-30 group-hover:opacity-50 transition-opacity"
-                  />
-                  {store.verified && (
-                    <span className="absolute top-3 right-3 bg-success text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
-                      Verified
-                    </span>
-                  )}
-                  <div className="absolute top-3 left-3 bg-black/40 backdrop-blur-sm p-2 rounded-lg">
-                    <ExternalLink className="w-4 h-4 text-white" />
-                  </div>
-                </div>
-                <div className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-text-primary font-bold text-lg group-hover:text-accent-light transition-colors">
-                        {store.name}
-                      </h3>
-                      <p className="text-text-muted text-sm">
-                        {store.specialty}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 text-warning">
-                      <Star className="w-4 h-4 fill-current" />
-                      <span className="font-bold">{store.rating}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
-                    <div className="text-sm">
-                      <span className="text-text-muted">
-                        {store.products} products
-                      </span>
-                      <span className="text-text-muted mx-2">•</span>
-                      <span className="text-text-muted">
-                        {store.reviews} reviews
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </section>
+                    className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+                />
+                
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
-        {/* Features */}
-        <section className="mb-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass p-6 rounded-2xl text-center">
-              <Smartphone className="w-8 h-8 text-accent-light mx-auto mb-3" />
-              <h3 className="font-bold text-lg mb-2 text-text-primary">
-                Mobile First
-              </h3>
-              <p className="text-text-secondary text-sm">
-                Optimized for browsing on any device
-              </p>
+                {/* External Link Icon - Centered & Prominent on Hover */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 text-white transform scale-90 group-hover:scale-100 transition-transform">
+                        <ExternalLink className="w-6 h-6" />
+                    </div>
+                </div>
+
+                <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4">
+                    <h3 className="text-white font-bold text-sm md:text-xl truncate transition-colors">
+                    {store.name}
+                    </h3>
+                    <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-text-muted mt-1 uppercase tracking-wider group-hover:text-white/80 transition-colors">
+                        <span>Visit Store</span>
+                        <ExternalLink className="w-3 h-3" />
+                    </div>
+                </div>
+                </a>
+            ))}
             </div>
-            <div className="glass p-6 rounded-2xl text-center">
-              <CheckCircle className="w-8 h-8 text-success mx-auto mb-3" />
-              <h3 className="font-bold text-lg mb-2 text-text-primary">
-                Verified Sellers
-              </h3>
-              <p className="text-text-secondary text-sm">
-                Every seller is manually vetted by our team
-              </p>
+        ) : (
+            <div className="text-center py-20 text-text-muted">
+                No stores found matching "{searchQuery}"
             </div>
-            <div className="glass p-6 rounded-2xl text-center">
-              <Eye className="w-8 h-8 text-blue-400 mx-auto mb-3" />
-              <h3 className="font-bold text-lg mb-2 text-text-primary">
-                Direct Links
-              </h3>
-              <p className="text-text-secondary text-sm">
-                No ads, just direct links to seller albums
-              </p>
-            </div>
-          </div>
-        </section>
+        )}
       </div>
-      <Footer />
+
+
     </div>
   );
 }

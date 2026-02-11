@@ -7,36 +7,36 @@ import {
   Share2,
   Copy,
   Check,
+  Heart,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   ExternalLink,
   ImageIcon,
-  Star,
   Tag,
-  Info,
+  Clock,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { Footer } from "@/components/Footer";
 import { AgentSelector } from "@/components/product/AgentSelector";
 import { Button } from "@/components/ui/Button";
 
 // Same product data (in a real app this would be a shared store/db)
+// Updated to use categories: string[]
 const allProducts = [
   {
     id: 1,
     name: "Nike Dunk Low Panda",
     price: "¥299",
-    category: "shoes",
+    categories: ["shoes", "best sellers"],
     image: "/test-product-images/img1.avif",
     link: "https://weidian.com/item.html?itemID=123",
-    rating: 4.9,
     description:
       "Premium quality Nike Dunk Low in the iconic Panda colorway. Features a clean black and white leather upper with excellent stitching and proper shape. One of the most popular rep finds in the community.",
     qcImages: [
       {
-        folder: "QC Batch 1 — Jan 2026",
+        folder: "Group 1",
         images: [
           "/test-product-images/img1.avif",
           "/test-product-images/img2.avif",
@@ -45,7 +45,7 @@ const allProducts = [
         ],
       },
       {
-        folder: "QC Batch 2 — Feb 2026",
+        folder: "Group 2",
         images: [
           "/test-product-images/img5.avif",
           "/test-product-images/img1.avif",
@@ -58,15 +58,14 @@ const allProducts = [
     id: 2,
     name: "FOG Essentials Hoodie",
     price: "¥189",
-    category: "hoodies",
+    categories: ["hoodies", "streetwear"],
     image: "/test-product-images/img2.avif",
     link: "https://item.taobao.com/item.htm?id=456",
-    rating: 4.8,
     description:
       "Fear of God Essentials oversized hoodie with front logo. Heavyweight cotton blend with a soft fleece interior. True to retail sizing.",
     qcImages: [
       {
-        folder: "QC Photos — Default",
+        folder: "Group 1",
         images: [
           "/test-product-images/img2.avif",
           "/test-product-images/img4.avif",
@@ -79,15 +78,14 @@ const allProducts = [
     id: 3,
     name: "Chrome Hearts Tee",
     price: "¥159",
-    category: "t-shirts",
+    categories: ["t-shirts", "luxury"],
     image: "/test-product-images/img3.avif",
     link: "https://detail.1688.com/offer/789.html",
-    rating: 4.7,
     description:
       "Chrome Hearts signature horseshoe graphic tee. Premium cotton with accurate print quality and correct tag details.",
     qcImages: [
       {
-        folder: "QC Gallery",
+        folder: "Group 1",
         images: [
           "/test-product-images/img3.avif",
           "/test-product-images/img1.avif",
@@ -99,15 +97,14 @@ const allProducts = [
     id: 4,
     name: "Jaded London Cargos",
     price: "¥259",
-    category: "pants",
+    categories: ["pants", "streetwear"],
     image: "/test-product-images/img4.avif",
     link: "https://weidian.com/item.html?itemID=101112",
-    rating: 4.8,
     description:
       "Jaded London parachute cargo pants with premium hardware. Multiple colorways available. Streetwear essential.",
     qcImages: [
       {
-        folder: "QC Photos",
+        folder: "Group 1",
         images: [
           "/test-product-images/img4.avif",
           "/test-product-images/img5.avif",
@@ -119,15 +116,14 @@ const allProducts = [
     id: 5,
     name: "Represent Hoodie",
     price: "¥219",
-    category: "hoodies",
+    categories: ["hoodies", "streetwear"],
     image: "/test-product-images/img5.avif",
     link: "https://weidian.com/item.html?itemID=131415",
-    rating: 4.9,
     description:
       "Represent Owners Club hoodie with embroidered branding. Heavy 450gsm cotton with ribbed trims. Very close to retail quality.",
     qcImages: [
       {
-        folder: "QC Batch 1",
+        folder: "Group 1",
         images: [
           "/test-product-images/img5.avif",
           "/test-product-images/img2.avif",
@@ -135,7 +131,7 @@ const allProducts = [
         ],
       },
       {
-        folder: "QC Batch 2",
+        folder: "Group 2",
         images: [
           "/test-product-images/img1.avif",
           "/test-product-images/img4.avif",
@@ -147,15 +143,14 @@ const allProducts = [
     id: 6,
     name: "Gallery Dept Jeans",
     price: "¥329",
-    category: "pants",
+    categories: ["pants", "luxury"],
     image: "/test-product-images/img1.avif",
     link: "https://weidian.com/item.html?itemID=161718",
-    rating: 4.6,
     description:
       "Gallery Dept paint-splattered distressed jeans. Unique hand-finished details on each pair. Premium denim quality.",
     qcImages: [
       {
-        folder: "QC Photos",
+        folder: "Group 1",
         images: ["/test-product-images/img1.avif", "/test-product-images/img3.avif"],
       },
     ],
@@ -164,15 +159,14 @@ const allProducts = [
     id: 7,
     name: "Jordan 4 Retro",
     price: "¥399",
-    category: "shoes",
+    categories: ["shoes", "best sellers"],
     image: "/test-product-images/img2.avif",
     link: "https://weidian.com/item.html?itemID=192021",
-    rating: 4.8,
     description:
       "Air Jordan 4 Retro with proper netting, shape, and materials. Top-tier batch with correct tongue height and heel tab.",
     qcImages: [
       {
-        folder: "QC Gallery",
+        folder: "Group 1",
         images: [
           "/test-product-images/img2.avif",
           "/test-product-images/img5.avif",
@@ -186,15 +180,14 @@ const allProducts = [
     id: 8,
     name: "Trapstar Jacket",
     price: "¥289",
-    category: "jackets",
+    categories: ["jackets", "streetwear"],
     image: "/test-product-images/img3.avif",
     link: "https://weidian.com/item.html?itemID=222324",
-    rating: 4.5,
     description:
       "Trapstar Irongate puffer jacket with detachable hood. Accurate branding and quality hardware. Warm and well-constructed.",
     qcImages: [
       {
-        folder: "QC Photos",
+        folder: "Group 1",
         images: ["/test-product-images/img3.avif", "/test-product-images/img2.avif"],
       },
     ],
@@ -203,15 +196,14 @@ const allProducts = [
     id: 9,
     name: "Stussy Tee",
     price: "¥129",
-    category: "t-shirts",
+    categories: ["t-shirts", "streetwear"],
     image: "/test-product-images/img4.avif",
     link: "https://item.taobao.com/item.htm?id=252627",
-    rating: 4.7,
     description:
       "Classic Stussy 8-ball graphic tee. Soft cotton blend with accurate sizing and print quality.",
     qcImages: [
       {
-        folder: "QC Photos",
+        folder: "Group 1",
         images: ["/test-product-images/img4.avif", "/test-product-images/img5.avif"],
       },
     ],
@@ -220,15 +212,14 @@ const allProducts = [
     id: 10,
     name: "Carhartt Double Knee",
     price: "¥269",
-    category: "pants",
+    categories: ["pants", "workwear"],
     image: "/test-product-images/img5.avif",
     link: "https://item.taobao.com/item.htm?id=282930",
-    rating: 4.8,
     description:
       "Carhartt WIP double knee work pants. Heavy-duty canvas with reinforced knees. Comes in multiple washes.",
     qcImages: [
       {
-        folder: "QC Photos",
+        folder: "Group 1",
         images: ["/test-product-images/img5.avif", "/test-product-images/img1.avif"],
       },
     ],
@@ -237,15 +228,14 @@ const allProducts = [
     id: 11,
     name: "Bape Shark Hoodie",
     price: "¥450",
-    category: "hoodies",
+    categories: ["hoodies", "streetwear"],
     image: "/test-product-images/img1.avif",
     link: "https://item.taobao.com/item.htm?id=313233",
-    rating: 4.6,
     description:
       "A Bathing Ape shark full-zip hoodie with WGM embroidery. Correct teeth print alignment and tag details.",
     qcImages: [
       {
-        folder: "QC Gallery",
+        folder: "Group 1",
         images: [
           "/test-product-images/img1.avif",
           "/test-product-images/img2.avif",
@@ -258,26 +248,88 @@ const allProducts = [
     id: 12,
     name: "Yeezy Slides",
     price: "¥110",
-    category: "shoes",
+    categories: ["shoes", "summer"],
     image: "/test-product-images/img3.avif",
     link: "https://weidian.com/item.html?itemID=343536",
-    rating: 4.9,
     description:
       "Adidas Yeezy Slides with proper foam compound and shape. Ultra-comfortable with accurate sole texture.",
     qcImages: [
       {
-        folder: "QC Photos — Bone",
+        folder: "Group 1",
+        images: [
+          "/test-product-images/img3.avif",
+          "/test-product-images/img4.avif",
+          "/test-product-images/img1.avif",
+        ],
+      },
+      {
+        folder: "Group 2",
+        images: [
+          "/test-product-images/img5.avif",
+          "/test-product-images/img1.avif",
+          "/test-product-images/img2.avif",
+        ],
+      },
+      {
+        folder: "Group 3",
         images: [
           "/test-product-images/img3.avif",
           "/test-product-images/img4.avif",
         ],
       },
       {
-        folder: "QC Photos — Onyx",
+        folder: "Group 4",
+        images: [
+          "/test-product-images/img1.avif",
+          "/test-product-images/img3.avif",
+          "/test-product-images/img5.avif",
+        ],
+      },
+      {
+        folder: "Group 5",
         images: [
           "/test-product-images/img5.avif",
-          "/test-product-images/img1.avif",
+          "/test-product-images/img2.avif",
         ],
+      },
+      {
+        folder: "Group 6",
+        images: [
+          "/test-product-images/img1.avif",
+          "/test-product-images/img3.avif",
+          "/test-product-images/img4.avif",
+        ],
+      },
+      {
+        folder: "Group 7",
+        images: [
+          "/test-product-images/img2.avif",
+          "/test-product-images/img5.avif",
+        ],
+      },
+      {
+        folder: "Group 8",
+        images: [
+          "/test-product-images/img4.avif",
+          "/test-product-images/img1.avif",
+          "/test-product-images/img3.avif",
+        ],
+      },
+      {
+        folder: "Group 9",
+        images: ["/test-product-images/img2.avif", "/test-product-images/img5.avif"],
+      },
+      {
+        folder: "Group 10",
+        images: ["/test-product-images/img1.avif", "/test-product-images/img4.avif"],
+      },
+      {
+        folder: "Group 11",
+        images: ["/test-product-images/img3.avif", "/test-product-images/img2.avif"],
+      },
+      {
+        folder: "Group 12",
+        images: ["/test-product-images/img5.avif", "/test-product-images/img1.avif"],
       },
     ],
   },
@@ -294,9 +346,11 @@ export default function ProductDetailPage({
 
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [activeQCFolder, setActiveQCFolder] = useState(0);
+  const [isFavorited, setIsFavorited] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  // Track current image index for each QC group card
+  const [qcCardIndices, setQcCardIndices] = useState<Record<number, number>>({});
 
   if (!product) {
     return (
@@ -316,17 +370,15 @@ export default function ProductDetailPage({
     );
   }
 
-  // Get recommended products (same category, exclude current)
+  // Get recommended products (share category)
   const recommended = allProducts
-    .filter((p) => p.category === product.category && p.id !== product.id)
+    .filter((p) => p.categories.some(c => product.categories.includes(c)) && p.id !== product.id)
     .slice(0, 5);
-  // Fill remaining slots from other products
-  const moreProducts = allProducts
-    .filter(
-      (p) => p.id !== product.id && !recommended.find((r) => r.id === p.id)
-    )
-    .slice(0, 5 - recommended.length);
-  const youMightLike = [...recommended, ...moreProducts].slice(0, 5);
+
+  // Recently Viewed (Mock - generally would be different from recommended)
+  const recentlyViewed = allProducts
+    .filter((p) => p.id !== product.id && !recommended.find((r) => r.id === p.id))
+    .slice(0, 5);
 
   const handleShare = async () => {
     try {
@@ -338,30 +390,45 @@ export default function ProductDetailPage({
     }
   };
 
-  const currentQCImages = product.qcImages[activeQCFolder]?.images || [];
+  const toggleQcCardImage = (groupIdx: number, direction: "prev" | "next", total: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setQcCardIndices(prev => {
+        const current = prev[groupIdx] || 0;
+        const next = direction === "next" 
+            ? (current + 1) % total 
+            : (current - 1 + total) % total;
+        return { ...prev, [groupIdx]: next };
+    });
+  };
 
-  const openLightbox = (imgSrc: string, index: number) => {
+  // Flatten QC images for lightbox navigation
+  const allQCImages = product.qcImages.flatMap(group => group.images);
+
+  const openLightbox = (imgSrc: string) => {
+    const idx = allQCImages.indexOf(imgSrc);
     setLightboxImage(imgSrc);
-    setLightboxIndex(index);
+    setLightboxIndex(idx);
   };
 
   const navigateLightbox = (dir: "prev" | "next") => {
     const newIndex =
       dir === "prev"
-        ? (lightboxIndex - 1 + currentQCImages.length) % currentQCImages.length
-        : (lightboxIndex + 1) % currentQCImages.length;
+        ? (lightboxIndex - 1 + allQCImages.length) % allQCImages.length
+        : (lightboxIndex + 1) % allQCImages.length;
     setLightboxIndex(newIndex);
-    setLightboxImage(currentQCImages[newIndex]);
+    setLightboxImage(allQCImages[newIndex]);
   };
 
   return (
-    <div className="min-h-screen bg-bg-primary">
+    // Removed bg-bg-primary to reveal grid background
+    <div className="min-h-screen">
       {/* Back Navigation */}
       <div className="sticky top-0 z-40 bg-bg-primary/95 backdrop-blur-md border-b border-white/5 md:relative md:bg-transparent md:border-none">
         <div className="max-w-6xl mx-auto px-4 py-3 md:pt-24 md:pb-4">
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 text-text-muted hover:text-white transition-colors text-sm"
+            className="inline-flex items-center gap-2 text-text-muted hover:text-white transition-colors text-sm font-medium"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Marketplace
@@ -373,7 +440,7 @@ export default function ProductDetailPage({
       <div className="max-w-6xl mx-auto px-4 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 mb-16">
           {/* Product Image */}
-          <div className="relative aspect-square bg-bg-card border border-white/5 rounded-2xl overflow-hidden group">
+          <div className="relative aspect-square bg-white/5 border border-white/5 rounded-2xl overflow-hidden group">
             <Image
               src={product.image}
               alt={product.name}
@@ -387,14 +454,12 @@ export default function ProductDetailPage({
           <div className="flex flex-col justify-center">
             {/* Category badge */}
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-medium text-text-muted bg-white/5 px-2.5 py-1 rounded-full capitalize flex items-center gap-1.5">
-                <Tag className="w-3 h-3" />
-                {product.category}
-              </span>
-              <span className="text-xs text-yellow-500 flex items-center gap-1">
-                <Star className="w-3 h-3 fill-yellow-500" />
-                {product.rating}
-              </span>
+              {product.categories.map((cat) => (
+                <span key={cat} className="text-xs font-medium text-text-muted bg-white/5 px-2.5 py-1 rounded-full capitalize flex items-center gap-1.5">
+                  <Tag className="w-3 h-3" />
+                  {cat}
+                </span>
+              ))}
             </div>
 
             {/* Title */}
@@ -440,97 +505,110 @@ export default function ProductDetailPage({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-sm text-text-muted hover:text-white transition-colors"
+                title="View Original Link"
               >
                 <ExternalLink className="w-4 h-4" />
-                View Original
+                Original
               </a>
-            </div>
-
-            {/* Affiliate notice */}
-            <div className="mt-6 flex items-start gap-2 bg-white/[0.02] border border-white/5 rounded-xl p-3">
-              <Info className="w-4 h-4 text-text-muted flex-shrink-0 mt-0.5" />
-              <p className="text-[11px] text-text-muted leading-relaxed">
-                This is an affiliated product. Clicking &quot;Buy with Agent&quot;
-                will redirect you to an external shopping agent where you can
-                purchase this item.
-              </p>
+              <button
+                onClick={() => setIsFavorited(!isFavorited)}
+                className={`flex items-center gap-2 text-sm transition-colors cursor-pointer ${isFavorited ? "text-red-500 hover:text-red-400" : "text-text-muted hover:text-white"}`}
+                title="Favorite"
+              >
+                <Heart className={`w-4 h-4 ${isFavorited ? "fill-current" : ""}`} />
+                {isFavorited ? "Saved" : "Save"}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* QC Images Section */}
+        {/* QC Images Section - Card Layout with In-Card Navigation */}
         {product.qcImages.length > 0 && (
           <div className="mb-16">
-            <div className="flex items-center gap-3 mb-6">
-              <ImageIcon className="w-5 h-5 text-text-muted" />
-              <h2 className="text-xl md:text-2xl font-bold text-white">
-                QC Photos
-              </h2>
-              <span className="text-xs text-text-muted bg-white/5 px-2 py-0.5 rounded-full">
-                {product.qcImages.length}{" "}
-                {product.qcImages.length === 1 ? "gallery" : "galleries"}
-              </span>
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+                        QC Photos
+                        <span className="text-sm font-normal text-text-muted bg-white/5 px-2 py-0.5 rounded-full">
+                            {product.qcImages.length} Galleries
+                        </span>
+                    </h2>
+                </div>
+                {/* Horizontal Scroll Controls could go here if list is long */}
             </div>
 
-            {/* Folder Tabs */}
-            {product.qcImages.length > 1 && (
-              <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide pb-1">
-                {product.qcImages.map((qc, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveQCFolder(idx)}
-                    className={`text-sm font-medium whitespace-nowrap px-4 py-2 rounded-xl transition-all cursor-pointer ${
-                      activeQCFolder === idx
-                        ? "bg-white text-black"
-                        : "bg-bg-card border border-white/5 text-text-secondary hover:bg-white/5"
-                    }`}
-                  >
-                    {qc.folder}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex overflow-x-auto gap-4 scrollbar-hide pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+              {product.qcImages.map((group, groupIdx) => {
+                const currentIndex = qcCardIndices[groupIdx] || 0;
+                const currentImage = group.images[currentIndex];
+                const totalImages = group.images.length;
 
-            {/* Single folder name */}
-            {product.qcImages.length === 1 && (
-              <p className="text-sm text-text-muted mb-4">
-                {product.qcImages[0].folder}
-              </p>
-            )}
+                return (
+                  <div key={groupIdx} className="flex-shrink-0 w-48 md:w-56 bg-white/5 border border-white/5 rounded-xl overflow-hidden flex flex-col group/card hover:border-white/20 transition-all">
+                    {/* Image Area */}
+                    <div className="relative aspect-[4/3] bg-black/20">
+                        <Image
+                            src={currentImage}
+                            alt={`${group.folder} photo ${currentIndex + 1}`}
+                            fill
+                            className="object-cover"
+                        />
+                        
+                        {/* Count Badge */}
+                        <div className="absolute top-3 right-3 bg-black/60 text-white text-[10px] font-medium px-2 py-1 rounded-full backdrop-blur-md">
+                            {currentIndex + 1} of {totalImages}
+                        </div>
 
-            {/* QC Image Grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-              {currentQCImages.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => openLightbox(img, idx)}
-                  className="relative aspect-square bg-bg-card border border-white/5 rounded-lg overflow-hidden group cursor-pointer hover:border-white/20 transition-all"
-                >
-                  <Image
-                    src={img}
-                    alt={`QC Photo ${idx + 1}`}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                </button>
-              ))}
+                        {/* Navigation Arrows (Show on hover or always on mobile?) */}
+                        {totalImages > 1 && (
+                            <>
+                                <button 
+                                    onClick={(e) => toggleQcCardImage(groupIdx, "prev", totalImages, e)}
+                                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity z-10"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <button 
+                                    onClick={(e) => toggleQcCardImage(groupIdx, "next", totalImages, e)}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity z-10"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                            </>
+                        )}
+                        
+                        {/* Enlarge Button (Clicking image works too in this model via outer div if we wanted, but let's add a button) */}
+                        <button 
+                            onClick={() => openLightbox(currentImage)}
+                            className="absolute inset-0 z-0"
+                        />
+                    </div>
+
+                    {/* Metadata Footer - Simplified */}
+                    <div className="p-3 bg-white/[0.02]">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-white group-hover/card:text-indigo-400 transition-colors">{group.folder}</span>
+                        </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
 
         {/* You Might Also Like */}
-        {youMightLike.length > 0 && (
-          <div className="mb-16">
+        {recommended.length > 0 && (
+          <div className="mb-12">
             <h2 className="text-xl md:text-2xl font-bold text-white mb-6">
               You Might Also Like
             </h2>
-            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
-              {youMightLike.map((p) => (
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {recommended.map((p) => (
                 <Link
                   key={p.id}
                   href={`/products/${p.id}`}
-                  className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
+                  className="bg-white/5 border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
                 >
                   <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900">
                     <Image
@@ -554,37 +632,7 @@ export default function ProductDetailPage({
           </div>
         )}
 
-        {/* Product Details / Extra Info */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-16">
-          <div className="bg-bg-card border border-white/5 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-white mb-2 uppercase tracking-wider">
-              Shipping Info
-            </h3>
-            <p className="text-xs text-text-secondary leading-relaxed">
-              Ships through your selected agent. Typical delivery: 2-4 weeks
-              depending on shipping method. Express options available.
-            </p>
-          </div>
-          <div className="bg-bg-card border border-white/5 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-white mb-2 uppercase tracking-wider">
-              QC Process
-            </h3>
-            <p className="text-xs text-text-secondary leading-relaxed">
-              After purchasing through an agent, you&apos;ll receive QC photos
-              before the item ships. Request HD photos if available.
-            </p>
-          </div>
-          <div className="bg-bg-card border border-white/5 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-white mb-2 uppercase tracking-wider">
-              Returns Policy
-            </h3>
-            <p className="text-xs text-text-secondary leading-relaxed">
-              Return policies vary by agent and seller. Check your
-              agent&apos;s return policy before purchasing. Most agents offer
-              a 3-day inspection period.
-            </p>
-          </div>
-        </div>
+
       </div>
 
       {/* Lightbox */}
@@ -602,7 +650,7 @@ export default function ProductDetailPage({
           </button>
 
           {/* Nav arrows */}
-          {currentQCImages.length > 1 && (
+          {allQCImages.length > 1 && (
             <>
               <button
                 onClick={(e) => {
@@ -640,12 +688,12 @@ export default function ProductDetailPage({
 
           {/* Counter */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-sm">
-            {lightboxIndex + 1} / {currentQCImages.length}
+            {lightboxIndex + 1} / {allQCImages.length}
           </div>
         </div>
       )}
 
-      <Footer />
+
 
       {/* Agent Selector Modal */}
       <AgentSelector

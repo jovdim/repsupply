@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poetsen_One } from "next/font/google";
 import "./globals.css";
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 const poetsenOne = Poetsen_One({
   weight: "400",
@@ -25,6 +26,7 @@ export default function RootLayout({
         {/* Grid Background */}
         <div className="grid-background" />
         <ResponsiveLayout>{children}</ResponsiveLayout>
+        <ScrollToTop />
       </body>
     </html>
   );
