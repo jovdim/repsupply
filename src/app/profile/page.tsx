@@ -1,268 +1,435 @@
 "use client";
 
-import { useState } from "react";
-import { User, Settings, Heart, History, LogOut, Save, ExternalLink, Lock, AlertTriangle, Mail, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Heart,
+  Clock,
+  Settings,
+  LogOut,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  User,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-
-// Mock Data
-const savedFinds = [
-  { id: 1, name: "Nike Dunk Low Panda", price: "¥299", image: "/test-product-images/img1.avif" },
-  { id: 2, name: "Essentials Hoodie", price: "¥189", image: "/test-product-images/img2.avif" },
-  { id: 3, name: "Chrome Hearts Tee", price: "¥159", image: "/test-product-images/img3.avif" },
-  { id: 4, name: "Voltage Cargos", price: "¥259", image: "/test-product-images/img4.avif" },
-  { id: 5, name: "Stussy 8 Ball", price: "¥99", image: "/test-product-images/img5.avif" },
-  { id: 6, name: "Jordan 1 Mocha", price: "¥420", image: "/test-product-images/img1.avif" },
-];
-
-const historyItems = [
-  { id: 5, name: "Represent Hoodie", price: "¥219", image: "/test-product-images/img5.avif", time: "2h ago" },
-  { id: 6, name: "Gallery Dept Jeans", price: "¥329", image: "/test-product-images/img1.avif", time: "5h ago" },
-  { id: 7, name: "Stussy Tee", price: "¥99", image: "/test-product-images/img2.avif", time: "1d ago" },
-];
+import { useAuth } from "@/components/AuthProvider";
+import { getFavorites } from "@/lib/supabase/favorites";
+import { getViewHistory } from "@/lib/supabase/history";
+import { createClient } from "@/lib/supabase/client";
+import { LoginForm } from "@/components/auth/LoginForm";
 
 export default function ProfilePage() {
+  const { user, loading: authLoading, signOut } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"saved" | "history" | "account">("saved");
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  
-  // User State
-  const [user, setUser] = useState({
-    name: "Demo User",
-    email: "demo@repsupply.com",
-    avatar: null as string | null,
-    joined: "March 2024",
-  });
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const [passwordForm, setPasswordForm] = useState({
-    current: "",
-    new: "",
-    confirm: "",
-  });
+  // Password change state
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
-  const handleLogout = () => {
-    // In a real app, this would clear session/cookies and redirect
-    window.location.href = "/";
-  };
+  // Data state
+  const [savedItems, setSavedItems] = useState<any[]>([]);
+  const [historyItems, setHistoryItems] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Mock save
-    alert("Profile Updated Successfully!");
-  };
+  // Fetch user data
+  useEffect(() => {
+    if (!user) return;
 
-  const handleChangePassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordForm.new !== passwordForm.confirm) {
-        alert("Passwords do not match!");
-        return;
+    async function fetchData() {
+      setDataLoading(true);
+      const [favs, history] = await Promise.all([
+        getFavorites(),
+        getViewHistory(20),
+      ]);
+      setSavedItems(favs);
+      setHistoryItems(history);
+      setDataLoading(false);
     }
-    alert("Password Changed Successfully!");
-    setPasswordForm({ current: "", new: "", confirm: "" });
+    fetchData();
+  }, [user]);
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/");
+    router.refresh();
   };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMessage(null);
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordMessage({ type: "error", text: "Passwords do not match." });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordMessage({
+        type: "error",
+        text: "Password must be at least 8 characters.",
+      });
+      return;
+    }
+
+    setPasswordLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      setPasswordMessage({ type: "error", text: error.message });
+    } else {
+      setPasswordMessage({
+        type: "success",
+        text: "Password updated successfully!",
+      });
+      setNewPassword("");
+      setConfirmNewPassword("");
+    }
+    setPasswordLoading(false);
+  };
+
+  // Loading check
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen pt-32 px-4 pb-12 flex items-center justify-center">
+        <div className="w-full max-w-md bg-bg-card border border-white/5 backdrop-blur-md rounded-3xl p-8 animate-scale-in">
+           <LoginForm redirectTo="/profile" />
+        </div>
+      </div>
+    );
+  }
+
+  const userName =
+    user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+  const userEmail = user.email || "";
+  const joinDate = new Date(user.created_at).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
-    <div className="min-h-screen pb-20">
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
-            <div className="bg-bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-                <div className="flex items-center gap-3 mb-4 text-warning">
-                    <AlertTriangle className="w-6 h-6" />
-                    <h3 className="text-lg font-bold text-white">Confirm Logout</h3>
-                </div>
-                <p className="text-text-secondary text-sm mb-6">
-                    Are you sure you want to log out of your account?
-                </p>
-                <div className="flex justify-end gap-3">
-                    <Button variant="ghost" onClick={() => setShowLogoutConfirm(false)}>Cancel</Button>
-                    <Button 
-                        onClick={handleLogout}
-                        className="bg-red-500 hover:bg-red-600 text-white border-none"
+    <div className="min-h-screen pt-24 px-4 pb-12">
+      <div className="max-w-4xl mx-auto">
+        {/* Profile Header */}
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-10 animate-fade-in">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-2xl font-bold text-white shadow-lg">
+            {userName.charAt(0).toUpperCase()}
+          </div>
+          <div className="text-center md:text-left">
+            <h1 className="text-2xl md:text-3xl font-bold text-white">
+              {userName}
+            </h1>
+            <p className="text-text-secondary text-sm">{userEmail}</p>
+            <p className="text-text-muted text-xs mt-1">Joined {joinDate}</p>
+          </div>
+          <div className="md:ml-auto">
+            <Button
+              onClick={() => setShowLogoutModal(true)}
+              variant="ghost"
+              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Log out
+            </Button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-white/5 mb-8">
+          {[
+            { key: "saved" as const, icon: Heart, label: "Saved" },
+            { key: "history" as const, icon: Clock, label: "History" },
+            { key: "account" as const, icon: Settings, label: "Account" },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
+                activeTab === tab.key
+                  ? "text-white border-b-2 border-white -mb-px"
+                  : "text-text-muted hover:text-white"
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+              {tab.key === "saved" && savedItems.length > 0 && (
+                <span className="bg-white/10 text-xs px-1.5 py-0.5 rounded-full">
+                  {savedItems.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div className="animate-fade-in">
+          {/* Saved Tab */}
+          {activeTab === "saved" && (
+            <div>
+              {dataLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-bg-card border border-white/5 rounded-xl overflow-hidden animate-pulse"
                     >
-                        Logout
-                    </Button>
+                      <div className="aspect-square bg-white/5" />
+                      <div className="p-3 space-y-2">
+                        <div className="h-4 bg-white/5 rounded w-16" />
+                        <div className="h-3 bg-white/5 rounded w-24" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              ) : savedItems.length === 0 ? (
+                <div className="text-center py-16">
+                  <Heart className="w-12 h-12 text-text-muted mx-auto mb-4" />
+                  <p className="text-text-muted text-lg mb-2">
+                    No saved items yet
+                  </p>
+                  <p className="text-text-muted text-sm mb-6">
+                    Browse products and tap the heart to save.
+                  </p>
+                  <Link href="/products">
+                    <Button>
+                      Browse Products
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {savedItems.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={`/products/${item.id}`}
+                      className="bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all group cursor-pointer"
+                    >
+                      <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          quality={100}
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <div className="font-bold text-white text-sm mb-0.5">
+                          {item.price}
+                        </div>
+                        <h3 className="text-text-muted text-xs line-clamp-1 group-hover:text-white transition-colors">
+                          {item.name}
+                        </h3>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
+          )}
+
+          {/* History Tab */}
+          {activeTab === "history" && (
+            <div>
+              {dataLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-bg-card border border-white/5 rounded-xl p-3 flex items-center gap-3 animate-pulse"
+                    >
+                      <div className="w-14 h-14 rounded-lg bg-white/5" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-white/5 rounded w-32" />
+                        <div className="h-3 bg-white/5 rounded w-16" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : historyItems.length === 0 ? (
+                <div className="text-center py-16">
+                  <Clock className="w-12 h-12 text-text-muted mx-auto mb-4" />
+                  <p className="text-text-muted text-lg mb-2">
+                    No history yet
+                  </p>
+                  <p className="text-text-muted text-sm mb-6">
+                    Products you view will appear here.
+                  </p>
+                  <Link href="/products">
+                    <Button>
+                      Browse Products
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {historyItems.map((item, idx) => (
+                    <Link
+                      key={`${item.id}-${idx}`}
+                      href={`/products/${item.id}`}
+                      className="bg-bg-card border border-white/5 rounded-xl p-3 flex items-center gap-3 hover:border-white/20 transition-all group cursor-pointer"
+                    >
+                      <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-neutral-900 flex-shrink-0">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          quality={100}
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-text-primary text-sm mb-0.5 group-hover:text-white transition-colors">
+                          {item.name}
+                        </h3>
+                        <span className="text-text-muted text-xs">
+                          {item.time}
+                        </span>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-white font-bold text-sm">
+                          {item.price}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Account Tab */}
+          {activeTab === "account" && (
+            <div className="max-w-md">
+              <h3 className="text-lg font-bold text-white mb-6">
+                Change Password
+              </h3>
+
+              {passwordMessage && (
+                <div
+                  className={`mb-4 p-3 rounded-xl border text-sm text-center ${
+                    passwordMessage.type === "success"
+                      ? "bg-green-500/10 border-green-500/20 text-green-400"
+                      : "bg-red-500/10 border-red-500/20 text-red-400"
+                  }`}
+                >
+                  {passwordMessage.text}
+                </div>
+              )}
+
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-text-secondary">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      className="w-full bg-black/20 border border-white/10 text-white rounded-xl py-3 pl-11 pr-11 outline-none focus:border-white/30 transition-colors placeholder:text-text-muted text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white cursor-pointer"
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-text-secondary">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      className="w-full bg-black/20 border border-white/10 text-white rounded-xl py-3 pl-11 pr-4 outline-none focus:border-white/30 transition-colors placeholder:text-text-muted text-sm"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="bg-white text-black hover:bg-white/90 border-none font-bold"
+                >
+                  {passwordLoading ? (
+                    <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  ) : (
+                    "Update Password"
+                  )}
+                </Button>
+              </form>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Logout Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full animate-scale-in">
+            <h3 className="text-lg font-bold text-white mb-2">Log out?</h3>
+            <p className="text-text-secondary text-sm mb-6">
+              Your favorites and history will be waiting when you come back.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowLogoutModal(false)}
+                variant="ghost"
+                className="flex-1 bg-white/5"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleLogout}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white border-none"
+              >
+                Log out
+              </Button>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Profile Header */}
-      <div className="max-w-[1600px] mx-auto px-4 md:px-12 lg:px-20 xl:px-24 pt-24 md:pt-32 pb-8">
-        <div className="flex items-end justify-between border-b border-white/5 pb-8">
-            <div className="flex items-center gap-6">
-                <div className="relative w-20 h-20 rounded-full overflow-hidden border border-white/10 bg-neutral-900 shrink-0">
-                    {user.avatar ? (
-                         <Image src={user.avatar} alt={user.name} fill className="object-cover" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <User className="w-8 h-8 text-white/20" />
-                        </div>
-                    )}
-                </div>
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold font-[var(--font-poetsen-one)] text-white mb-1">
-                        {user.name}
-                    </h1>
-                    <div className="flex items-center gap-2 text-text-secondary text-sm">
-                        <Mail className="w-3.5 h-3.5" />
-                        {user.email}
-                    </div>
-                </div>
-            </div>
-            
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowLogoutConfirm(true)}
-                className="text-text-muted hover:text-white hover:bg-white/5"
-            >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-            </Button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="max-w-[1600px] mx-auto px-4 md:px-12 lg:px-20 xl:px-24 mb-8">
-        <div className="flex gap-8 border-b border-white/5">
-            <button
-                onClick={() => setActiveTab("saved")}
-                className={`pb-4 text-sm font-medium transition-colors relative flex items-center gap-2 ${activeTab === "saved" ? "text-white" : "text-text-muted hover:text-white"}`}
-            >
-                <Heart className="w-4 h-4" />
-                Saved ({savedFinds.length})
-                {activeTab === "saved" && <div className="absolute bottom-0 left-0 w-full h-px bg-white" />}
-            </button>
-             <button
-                onClick={() => setActiveTab("history")}
-                className={`pb-4 text-sm font-medium transition-colors relative flex items-center gap-2 ${activeTab === "history" ? "text-white" : "text-text-muted hover:text-white"}`}
-            >
-                <History className="w-4 h-4" />
-                Recently Viewed
-                {activeTab === "history" && <div className="absolute bottom-0 left-0 w-full h-px bg-white" />}
-            </button>
-             <button
-                onClick={() => setActiveTab("account")}
-                className={`pb-4 text-sm font-medium transition-colors relative flex items-center gap-2 ${activeTab === "account" ? "text-white" : "text-text-muted hover:text-white"}`}
-            >
-                <Settings className="w-4 h-4" />
-                Account
-                {activeTab === "account" && <div className="absolute bottom-0 left-0 w-full h-px bg-white" />}
-            </button>
-        </div>
-      </div>
-
-      {/* Content Area */}
-      <div className="max-w-[1600px] mx-auto px-4 md:px-12 lg:px-20 xl:px-24 min-h-[50vh]">
-        {activeTab === "saved" && (
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 animate-fade-in">
-                {savedFinds.map((item) => (
-                     <Link
-                        key={item.id}
-                        href={`/products/${item.id}`}
-                        className="group relative bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all cursor-pointer block"
-                    >
-                        <div className="aspect-square relative bg-gradient-to-br from-neutral-800 to-neutral-900">
-                            <Image src={item.image} alt={item.name} fill quality={100} className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                        </div>
-                        <div className="p-3">
-                            <div className="font-bold text-white text-sm mb-0.5">{item.price}</div>
-                            <div className="text-text-secondary text-xs truncate group-hover:text-white transition-colors">{item.name}</div>
-                        </div>
-                    </Link>
-                ))}
-                 {/* Add New Placeholder */}
-                 <Link href="/products" className="aspect-[4/5] border border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center text-text-muted hover:text-white hover:border-white/30 transition-colors group">
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                        <span className="text-xl leading-none pl-0.5 pt-0.5">+</span>
-                    </div>
-                    <span className="text-xs font-medium">Browse</span>
-                </Link>
-            </div>
-        )}
-
-        {activeTab === "history" && (
-             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 animate-fade-in">
-                 {historyItems.map((item) => (
-                     <Link
-                        key={item.id}
-                        href={`/products/${item.id}`}
-                        className="group relative bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all cursor-pointer block"
-                     >
-                        <div className="aspect-square relative bg-gradient-to-br from-neutral-800 to-neutral-900">
-                            <Image src={item.image} alt={item.name} fill quality={100} className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                            {/* Time Badge */}
-                            <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[9px] font-medium text-text-secondary flex items-center gap-1">
-                                <Clock className="w-2.5 h-2.5" />
-                                {item.time}
-                            </div>
-                        </div>
-                        <div className="p-3">
-                            <div className="font-bold text-white text-sm mb-0.5">{item.price}</div>
-                            <div className="text-text-secondary text-xs truncate group-hover:text-white transition-colors">{item.name}</div>
-                        </div>
-                    </Link>
-                 ))}
-             </div>
-        )}
-
-        {activeTab === "account" && (
-            <div className="max-w-md mx-auto animate-fade-in">
-                {/* Change Password */}
-                <div className="bg-bg-card border border-white/5 rounded-2xl p-6">
-                    <div className="flex items-center gap-2 mb-6 text-white">
-                        <Lock className="w-5 h-5" />
-                        <h2 className="text-lg font-bold">Security</h2>
-                    </div>
-                    
-                    <form onSubmit={handleChangePassword} className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                                <Lock className="w-3 h-3" />
-                                Current Password
-                            </label>
-                            <input 
-                                type="password" 
-                                value={passwordForm.current}
-                                onChange={(e) => setPasswordForm({...passwordForm, current: e.target.value})}
-                                className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-white/30 outline-none transition-colors"
-                            />
-                        </div>
-
-                         <div>
-                            <label className="block text-xs font-medium text-text-secondary mb-1.5">New Password</label>
-                            <input 
-                                type="password" 
-                                value={passwordForm.new}
-                                onChange={(e) => setPasswordForm({...passwordForm, new: e.target.value})}
-                                className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-white/30 outline-none transition-colors"
-                            />
-                        </div>
-
-                         <div>
-                            <label className="block text-xs font-medium text-text-secondary mb-1.5">Confirm New Password</label>
-                            <input 
-                                type="password" 
-                                value={passwordForm.confirm}
-                                onChange={(e) => setPasswordForm({...passwordForm, confirm: e.target.value})}
-                                className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-white/30 outline-none transition-colors"
-                            />
-                        </div>
-
-                        <div className="pt-2 flex justify-end">
-                             <Button type="submit" size="sm" className="bg-white text-black hover:bg-white/90 border-none transition-all active:scale-95">
-                                Update Password
-                             </Button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        )}
-      </div>
-
-      <div className="mt-auto pt-24">
-      </div>
     </div>
   );
 }

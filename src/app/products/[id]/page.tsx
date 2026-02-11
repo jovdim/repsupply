@@ -21,319 +21,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { AgentSelector } from "@/components/product/AgentSelector";
 import { Button } from "@/components/ui/Button";
-
-// Same product data (in a real app this would be a shared store/db)
-// Updated to use categories: string[]
-const allProducts = [
-  {
-    id: 1,
-    name: "Nike Dunk Low Panda",
-    price: "¥299",
-    categories: ["shoes", "best sellers"],
-    image: "/test-product-images/img1.avif",
-    link: "https://weidian.com/item.html?itemID=123",
-    description:
-      "Premium quality Nike Dunk Low in the iconic Panda colorway. Features a clean black and white leather upper with excellent stitching and proper shape. One of the most popular rep finds in the community.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: [
-          "/test-product-images/img1.avif",
-          "/test-product-images/img2.avif",
-          "/test-product-images/img3.avif",
-          "/test-product-images/img4.avif",
-        ],
-      },
-      {
-        folder: "Group 2",
-        images: [
-          "/test-product-images/img5.avif",
-          "/test-product-images/img1.avif",
-          "/test-product-images/img3.avif",
-        ],
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: "FOG Essentials Hoodie",
-    price: "¥189",
-    categories: ["hoodies", "streetwear"],
-    image: "/test-product-images/img2.avif",
-    link: "https://item.taobao.com/item.htm?id=456",
-    description:
-      "Fear of God Essentials oversized hoodie with front logo. Heavyweight cotton blend with a soft fleece interior. True to retail sizing.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: [
-          "/test-product-images/img2.avif",
-          "/test-product-images/img4.avif",
-          "/test-product-images/img5.avif",
-        ],
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: "Chrome Hearts Tee",
-    price: "¥159",
-    categories: ["t-shirts", "luxury"],
-    image: "/test-product-images/img3.avif",
-    link: "https://detail.1688.com/offer/789.html",
-    description:
-      "Chrome Hearts signature horseshoe graphic tee. Premium cotton with accurate print quality and correct tag details.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: [
-          "/test-product-images/img3.avif",
-          "/test-product-images/img1.avif",
-        ],
-      },
-    ],
-  },
-  {
-    id: 4,
-    name: "Jaded London Cargos",
-    price: "¥259",
-    categories: ["pants", "streetwear"],
-    image: "/test-product-images/img4.avif",
-    link: "https://weidian.com/item.html?itemID=101112",
-    description:
-      "Jaded London parachute cargo pants with premium hardware. Multiple colorways available. Streetwear essential.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: [
-          "/test-product-images/img4.avif",
-          "/test-product-images/img5.avif",
-        ],
-      },
-    ],
-  },
-  {
-    id: 5,
-    name: "Represent Hoodie",
-    price: "¥219",
-    categories: ["hoodies", "streetwear"],
-    image: "/test-product-images/img5.avif",
-    link: "https://weidian.com/item.html?itemID=131415",
-    description:
-      "Represent Owners Club hoodie with embroidered branding. Heavy 450gsm cotton with ribbed trims. Very close to retail quality.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: [
-          "/test-product-images/img5.avif",
-          "/test-product-images/img2.avif",
-          "/test-product-images/img3.avif",
-        ],
-      },
-      {
-        folder: "Group 2",
-        images: [
-          "/test-product-images/img1.avif",
-          "/test-product-images/img4.avif",
-        ],
-      },
-    ],
-  },
-  {
-    id: 6,
-    name: "Gallery Dept Jeans",
-    price: "¥329",
-    categories: ["pants", "luxury"],
-    image: "/test-product-images/img1.avif",
-    link: "https://weidian.com/item.html?itemID=161718",
-    description:
-      "Gallery Dept paint-splattered distressed jeans. Unique hand-finished details on each pair. Premium denim quality.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: ["/test-product-images/img1.avif", "/test-product-images/img3.avif"],
-      },
-    ],
-  },
-  {
-    id: 7,
-    name: "Jordan 4 Retro",
-    price: "¥399",
-    categories: ["shoes", "best sellers"],
-    image: "/test-product-images/img2.avif",
-    link: "https://weidian.com/item.html?itemID=192021",
-    description:
-      "Air Jordan 4 Retro with proper netting, shape, and materials. Top-tier batch with correct tongue height and heel tab.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: [
-          "/test-product-images/img2.avif",
-          "/test-product-images/img5.avif",
-          "/test-product-images/img4.avif",
-          "/test-product-images/img1.avif",
-        ],
-      },
-    ],
-  },
-  {
-    id: 8,
-    name: "Trapstar Jacket",
-    price: "¥289",
-    categories: ["jackets", "streetwear"],
-    image: "/test-product-images/img3.avif",
-    link: "https://weidian.com/item.html?itemID=222324",
-    description:
-      "Trapstar Irongate puffer jacket with detachable hood. Accurate branding and quality hardware. Warm and well-constructed.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: ["/test-product-images/img3.avif", "/test-product-images/img2.avif"],
-      },
-    ],
-  },
-  {
-    id: 9,
-    name: "Stussy Tee",
-    price: "¥129",
-    categories: ["t-shirts", "streetwear"],
-    image: "/test-product-images/img4.avif",
-    link: "https://item.taobao.com/item.htm?id=252627",
-    description:
-      "Classic Stussy 8-ball graphic tee. Soft cotton blend with accurate sizing and print quality.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: ["/test-product-images/img4.avif", "/test-product-images/img5.avif"],
-      },
-    ],
-  },
-  {
-    id: 10,
-    name: "Carhartt Double Knee",
-    price: "¥269",
-    categories: ["pants", "workwear"],
-    image: "/test-product-images/img5.avif",
-    link: "https://item.taobao.com/item.htm?id=282930",
-    description:
-      "Carhartt WIP double knee work pants. Heavy-duty canvas with reinforced knees. Comes in multiple washes.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: ["/test-product-images/img5.avif", "/test-product-images/img1.avif"],
-      },
-    ],
-  },
-  {
-    id: 11,
-    name: "Bape Shark Hoodie",
-    price: "¥450",
-    categories: ["hoodies", "streetwear"],
-    image: "/test-product-images/img1.avif",
-    link: "https://item.taobao.com/item.htm?id=313233",
-    description:
-      "A Bathing Ape shark full-zip hoodie with WGM embroidery. Correct teeth print alignment and tag details.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: [
-          "/test-product-images/img1.avif",
-          "/test-product-images/img2.avif",
-          "/test-product-images/img3.avif",
-        ],
-      },
-    ],
-  },
-  {
-    id: 12,
-    name: "Yeezy Slides",
-    price: "¥110",
-    categories: ["shoes", "summer"],
-    image: "/test-product-images/img3.avif",
-    link: "https://weidian.com/item.html?itemID=343536",
-    description:
-      "Adidas Yeezy Slides with proper foam compound and shape. Ultra-comfortable with accurate sole texture.",
-    qcImages: [
-      {
-        folder: "Group 1",
-        images: [
-          "/test-product-images/img3.avif",
-          "/test-product-images/img4.avif",
-          "/test-product-images/img1.avif",
-        ],
-      },
-      {
-        folder: "Group 2",
-        images: [
-          "/test-product-images/img5.avif",
-          "/test-product-images/img1.avif",
-          "/test-product-images/img2.avif",
-        ],
-      },
-      {
-        folder: "Group 3",
-        images: [
-          "/test-product-images/img3.avif",
-          "/test-product-images/img4.avif",
-        ],
-      },
-      {
-        folder: "Group 4",
-        images: [
-          "/test-product-images/img1.avif",
-          "/test-product-images/img3.avif",
-          "/test-product-images/img5.avif",
-        ],
-      },
-      {
-        folder: "Group 5",
-        images: [
-          "/test-product-images/img5.avif",
-          "/test-product-images/img2.avif",
-        ],
-      },
-      {
-        folder: "Group 6",
-        images: [
-          "/test-product-images/img1.avif",
-          "/test-product-images/img3.avif",
-          "/test-product-images/img4.avif",
-        ],
-      },
-      {
-        folder: "Group 7",
-        images: [
-          "/test-product-images/img2.avif",
-          "/test-product-images/img5.avif",
-        ],
-      },
-      {
-        folder: "Group 8",
-        images: [
-          "/test-product-images/img4.avif",
-          "/test-product-images/img1.avif",
-          "/test-product-images/img3.avif",
-        ],
-      },
-      {
-        folder: "Group 9",
-        images: ["/test-product-images/img2.avif", "/test-product-images/img5.avif"],
-      },
-      {
-        folder: "Group 10",
-        images: ["/test-product-images/img1.avif", "/test-product-images/img4.avif"],
-      },
-      {
-        folder: "Group 11",
-        images: ["/test-product-images/img3.avif", "/test-product-images/img2.avif"],
-      },
-      {
-        folder: "Group 12",
-        images: ["/test-product-images/img5.avif", "/test-product-images/img1.avif"],
-      },
-    ],
-  },
-];
+import { getProductById, getAllProductsLight, type ProductFromDB } from "@/lib/supabase/products";
+import { addFavorite, removeFavorite, isFavorited as checkIsFavorited } from "@/lib/supabase/favorites";
+import { recordView } from "@/lib/supabase/history";
+import { useAuth } from "@/components/AuthProvider";
+import { LoginModal } from "@/components/auth/LoginModal";
 
 export default function ProductDetailPage({
   params,
@@ -342,12 +34,48 @@ export default function ProductDetailPage({
 }) {
   const { id } = use(params);
   const productId = parseInt(id);
-  const product = allProducts.find((p) => p.id === productId);
+  const { user } = useAuth();
 
+  const [product, setProduct] = useState<ProductFromDB | null>(null);
+  const [allProducts, setAllProducts] = useState<ProductFromDB[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(true);
   const qcGroupsRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [qcCardIndices, setQcCardIndices] = useState<Record<number, number>>({});
+
+  // Fetch product data
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const [prod, prods] = await Promise.all([
+        getProductById(productId),
+        getAllProductsLight(),
+      ]);
+      setProduct(prod);
+      setAllProducts(prods);
+      setLoading(false);
+    }
+    fetchData();
+  }, [productId]);
+
+  // Check favorite status and record view
+  useEffect(() => {
+    if (!product || !user) return;
+
+    async function initUserFeatures() {
+      const fav = await checkIsFavorited(product!.id);
+      setIsFavorited(fav);
+      await recordView(product!.id);
+    }
+    initUserFeatures();
+  }, [product, user]);
 
   const checkScroll = () => {
     if (qcGroupsRef.current) {
@@ -361,7 +89,7 @@ export default function ProductDetailPage({
     checkScroll();
     window.addEventListener("resize", checkScroll);
     return () => window.removeEventListener("resize", checkScroll);
-  }, [product?.qcImages.length]);
+  }, [product?.qcImages?.length]);
 
   const scrollQcGroups = (direction: "left" | "right") => {
     if (qcGroupsRef.current) {
@@ -371,12 +99,26 @@ export default function ProductDetailPage({
       });
     }
   };
-  const [copied, setCopied] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-  // Track current image index for each QC group card
-  const [qcCardIndices, setQcCardIndices] = useState<Record<number, number>>({});
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <div className="max-w-6xl mx-auto px-4 pt-24 pb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 animate-pulse">
+            <div className="aspect-square bg-white/5 rounded-2xl" />
+            <div className="space-y-4 pt-8">
+              <div className="h-4 bg-white/5 rounded w-24" />
+              <div className="h-8 bg-white/5 rounded w-64" />
+              <div className="h-10 bg-white/5 rounded w-32" />
+              <div className="h-20 bg-white/5 rounded w-full" />
+              <div className="h-12 bg-white/5 rounded w-48" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -401,11 +143,6 @@ export default function ProductDetailPage({
     .filter((p) => p.categories.some(c => product.categories.includes(c)) && p.id !== product.id)
     .slice(0, 5);
 
-  // Recently Viewed (Mock - generally would be different from recommended)
-  const recentlyViewed = allProducts
-    .filter((p) => p.id !== product.id && !recommended.find((r) => r.id === p.id))
-    .slice(0, 5);
-
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -413,6 +150,21 @@ export default function ProductDetailPage({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       /* ignore */
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (isFavorited) {
+      const success = await removeFavorite(product.id);
+      if (success) setIsFavorited(false);
+    } else {
+      const success = await addFavorite(product.id);
+      if (success) setIsFavorited(true);
     }
   };
 
@@ -447,7 +199,6 @@ export default function ProductDetailPage({
   };
 
   return (
-    // Removed bg-bg-primary to reveal grid background
     <div className="min-h-screen">
       {/* Back Navigation */}
       <div className="sticky top-0 z-40 bg-bg-primary/95 backdrop-blur-md border-b border-white/5 md:relative md:bg-transparent md:border-none">
@@ -527,18 +278,20 @@ export default function ProductDetailPage({
                 )}
                 {copied ? "Link copied!" : "Share"}
               </button>
-              <a
-                href={product.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-text-muted hover:text-white transition-colors"
-                title="View Original Link"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Original
-              </a>
+              {product.link && (
+                <a
+                  href={product.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-text-muted hover:text-white transition-colors"
+                  title="View Original Link"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Original
+                </a>
+              )}
               <button
-                onClick={() => setIsFavorited(!isFavorited)}
+                onClick={handleToggleFavorite}
                 className={`flex items-center gap-2 text-sm transition-colors cursor-pointer ${isFavorited ? "text-red-500 hover:text-red-400" : "text-text-muted hover:text-white"}`}
                 title="Favorite"
               >
@@ -549,7 +302,7 @@ export default function ProductDetailPage({
           </div>
         </div>
 
-        {/* QC Images Section - Card Layout with In-Card Navigation */}
+        {/* QC Images Section */}
         {product.qcImages.length > 0 && (
           <div className="mb-16">
             <div className="flex items-center justify-between mb-6">
@@ -561,7 +314,6 @@ export default function ProductDetailPage({
                         </span>
                     </h2>
                 </div>
-                {/* Horizontal Scroll Controls could go here if list is long */}
             </div>
 
             <div className="relative group -mx-4 px-4 md:mx-0 md:px-0">
@@ -613,7 +365,7 @@ export default function ProductDetailPage({
                               {currentIndex + 1} of {totalImages}
                           </div>
 
-                          {/* Navigation Arrows (Show on hover or always on mobile?) */}
+                          {/* Navigation Arrows */}
                           {totalImages > 1 && (
                               <>
                                   <button 
@@ -638,7 +390,7 @@ export default function ProductDetailPage({
                           />
                       </div>
 
-                      {/* Metadata Footer - Simplified */}
+                      {/* Metadata Footer */}
                       <div className="p-3 bg-bg-card">
                           <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-white group-hover/card:text-indigo-400 transition-colors uppercase tracking-wider">{group.folder}</span>
@@ -687,8 +439,6 @@ export default function ProductDetailPage({
             </div>
           </div>
         )}
-
-
       </div>
 
       {/* Lightbox */}
@@ -749,13 +499,22 @@ export default function ProductDetailPage({
         </div>
       )}
 
-
-
       {/* Agent Selector Modal */}
-      <AgentSelector
-        productUrl={product.link}
-        isOpen={isAgentModalOpen}
-        onClose={() => setIsAgentModalOpen(false)}
+      {product.link && (
+        <AgentSelector
+          productUrl={product.link}
+          isOpen={isAgentModalOpen}
+          onClose={() => setIsAgentModalOpen(false)}
+        />
+      )}
+
+      <LoginModal 
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false);
+          // Optional: Retry favoriting logic here if desired
+        }}
       />
     </div>
   );

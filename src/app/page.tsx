@@ -11,97 +11,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { products } from "@/lib/data/products";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getFeaturedProducts, type ProductFromDB } from "@/lib/supabase/products";
 
-const featuredProducts = [
-  {
-    id: 1,
-    name: "Nike Dunk Low",
-    price: "¥299",
-    image: "/test-product-images/img1.avif",
-    badge: "Hot",
-  },
-  {
-    id: 2,
-    name: "Essentials Hoodie",
-    price: "¥189",
-    image: "/test-product-images/img2.avif",
-    badge: "New",
-  },
-  {
-    id: 3,
-    name: "Chrome Hearts Tee",
-    price: "¥159",
-    image: "/test-product-images/img3.avif",
-    badge: "Top",
-  },
-  {
-    id: 4,
-    name: "Represent Hoodie",
-    price: "¥219",
-    image: "/test-product-images/img4.avif",
-    badge: "Trend",
-  },
-  {
-    id: 5,
-    name: "Stussy Tee 8 Ball",
-    price: "¥129",
-    image: "/test-product-images/img5.avif",
-    badge: "",
-  },
-  {
-    id: 6,
-    name: "Carhartt Pants",
-    price: "¥269",
-    image: "/test-product-images/img1.avif",
-    badge: "Sale",
-  },
-  {
-    id: 7,
-    name: "Jordan 4 Retro",
-    price: "¥399",
-    image: "/test-product-images/img2.avif",
-    badge: "Hot",
-  },
-  {
-    id: 8,
-    name: "Trapstar Jacket",
-    price: "¥289",
-    image: "/test-product-images/img3.avif",
-    badge: "New",
-  },
-  {
-    id: 9,
-    name: "Yeezy Slides",
-    price: "¥110",
-    image: "/test-product-images/img4.avif",
-    badge: "Best",
-  },
-  {
-    id: 10,
-    name: "Gallery Dept Jeans",
-    price: "¥329",
-    image: "/test-product-images/img5.avif",
-    badge: "Sale",
-  },
-  {
-    id: 11,
-    name: "Bape Shark Hoodie",
-    price: "¥450",
-    image: "/test-product-images/img1.avif",
-    badge: "New",
-  },
-  {
-    id: 12,
-    name: "Chrome Hearts Ring",
-    price: "¥199",
-    image: "/test-product-images/img2.avif",
-    badge: "Hot",
-  },
-];
 
 const categories = [
   { name: "Shoes", image: "/test-product-images/img1.avif" },
@@ -127,6 +41,17 @@ const agents = [
 
 export default function Home() {
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
+  const [featuredProducts, setFeaturedProducts] = useState<ProductFromDB[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    async function fetchFeatured() {
+      const data = await getFeaturedProducts(12);
+      setFeaturedProducts(data);
+      setLoadingProducts(false);
+    }
+    fetchFeatured();
+  }, []);
 
   const toggleFAQ = (index: number) => {
     setOpenFAQ(openFAQ === index ? null : index);
@@ -260,9 +185,21 @@ export default function Home() {
       {/* FEATURED PRODUCTS */}
       <div className="mb-8 md:mb-16 px-4 md:max-w-7xl md:mx-auto py-4 md:py-8">
         <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
-          {featuredProducts.map((product) => (
-            <div
+          {loadingProducts ? (
+            Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="bg-bg-card border border-white/5 rounded-xl overflow-hidden animate-pulse">
+                <div className="aspect-square bg-white/5" />
+                <div className="p-4 space-y-2">
+                  <div className="h-4 bg-white/5 rounded w-16" />
+                  <div className="h-3 bg-white/5 rounded w-24" />
+                </div>
+              </div>
+            ))
+          ) : (
+          featuredProducts.map((product) => (
+            <Link
               key={product.id}
+              href={`/products/${product.id}`}
               className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
             >
               <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
@@ -285,8 +222,9 @@ export default function Home() {
                   {product.name}
                 </h3>
               </div>
-            </div>
-          ))}
+            </Link>
+          ))
+          )}
         </div>
 
         {/* VIEW ALL PRODUCTS */}

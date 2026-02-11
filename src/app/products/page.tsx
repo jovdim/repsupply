@@ -14,106 +14,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
-
-// Extended product data - now with multiple categories
-const products = [
-  {
-    id: 1,
-    name: "Nike Dunk Low Panda",
-    price: "¥299",
-    categories: ["shoes", "best sellers"],
-    image: "/test-product-images/img1.avif",
-    link: "https://weidian.com/item.html?itemID=123",
-  },
-  {
-    id: 2,
-    name: "FOG Essentials Hoodie",
-    price: "¥189",
-    categories: ["hoodies", "streetwear"],
-    image: "/test-product-images/img2.avif",
-    link: "https://item.taobao.com/item.htm?id=456",
-  },
-  {
-    id: 3,
-    name: "Chrome Hearts Tee",
-    price: "¥159",
-    categories: ["t-shirts", "luxury"],
-    image: "/test-product-images/img3.avif",
-    link: "https://detail.1688.com/offer/789.html",
-  },
-  {
-    id: 4,
-    name: "Jaded London Cargos",
-    price: "¥259",
-    categories: ["pants", "streetwear"],
-    image: "/test-product-images/img4.avif",
-    link: "https://weidian.com/item.html?itemID=101112",
-  },
-  {
-    id: 5,
-    name: "Represent Hoodie",
-    price: "¥219",
-    categories: ["hoodies", "streetwear"],
-    image: "/test-product-images/img5.avif",
-    link: "https://weidian.com/item.html?itemID=131415",
-  },
-  {
-    id: 6,
-    name: "Gallery Dept Jeans",
-    price: "¥329",
-    categories: ["pants", "luxury"],
-    image: "/test-product-images/img1.avif",
-    link: "https://weidian.com/item.html?itemID=161718",
-  },
-  {
-    id: 7,
-    name: "Jordan 4 Retro",
-    price: "¥399",
-    categories: ["shoes", "best sellers"],
-    image: "/test-product-images/img2.avif",
-    link: "https://weidian.com/item.html?itemID=192021",
-  },
-  {
-    id: 8,
-    name: "Trapstar Jacket",
-    price: "¥289",
-    categories: ["jackets", "streetwear"],
-    image: "/test-product-images/img3.avif",
-    link: "https://weidian.com/item.html?itemID=222324",
-  },
-  {
-    id: 9,
-    name: "Stussy Tee",
-    price: "¥129",
-    categories: ["t-shirts", "streetwear"],
-    image: "/test-product-images/img4.avif",
-    link: "https://item.taobao.com/item.htm?id=252627",
-  },
-  {
-    id: 10,
-    name: "Carhartt Double Knee",
-    price: "¥269",
-    categories: ["pants", "workwear"],
-    image: "/test-product-images/img5.avif",
-    link: "https://item.taobao.com/item.htm?id=282930",
-  },
-  {
-    id: 11,
-    name: "Bape Shark Hoodie",
-    price: "¥450",
-    categories: ["hoodies", "streetwear"],
-    image: "/test-product-images/img1.avif",
-    link: "https://item.taobao.com/item.htm?id=313233",
-  },
-  {
-    id: 12,
-    name: "Yeezy Slides",
-    price: "¥110",
-    categories: ["shoes", "summer"],
-    image: "/test-product-images/img3.avif",
-    link: "https://weidian.com/item.html?itemID=343536",
-  },
-];
+import { getProducts, type ProductFromDB } from "@/lib/supabase/products";
 
 const categories = [
   "All",
@@ -153,10 +54,13 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [gridCols, setGridCols] = useState<4 | 5>(5); // Default 5, removed 3
+  const [gridCols, setGridCols] = useState<4 | 5>(5);
   const [mobileGridCols, setMobileGridCols] = useState<2 | 3>(3);
   const [isMobile, setIsMobile] = useState(false);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const [products, setProducts] = useState<ProductFromDB[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductFromDB[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -165,17 +69,37 @@ export default function ProductsPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "All" ||
-      product.categories.some(
-        (c) => c.toLowerCase() === selectedCategory.toLowerCase()
+  // Fetch all products once on mount
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true);
+      const data = await getProducts();
+      setAllProducts(data);
+      setProducts(data);
+      setLoading(false);
+    }
+    fetchProducts();
+  }, []);
+
+  // Client-side filtering when search/category changes
+  useEffect(() => {
+    let filtered = allProducts;
+
+    if (selectedCategory !== "All") {
+      filtered = filtered.filter((p) =>
+        p.categories.some(
+          (c) => c.toLowerCase() === selectedCategory.toLowerCase()
+        )
       );
-    return matchesSearch && matchesCategory;
-  });
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((p) => p.name.toLowerCase().includes(q));
+    }
+
+    setProducts(filtered);
+  }, [searchQuery, selectedCategory, allProducts]);
 
   const scrollCategories = (direction: "left" | "right") => {
     if (categoryScrollRef.current) {
@@ -195,7 +119,6 @@ export default function ProductsPage() {
     mobileGridCols === 2 ? "grid-cols-2" : "grid-cols-3";
 
   return (
-    // Removed bg-bg-primary so grid background is visible if set in layout/globals
     <div className="min-h-screen pb-12">
       {/* Header - Responsive */}
       <div className="sticky top-0 z-40 bg-bg-primary/95 backdrop-blur-md border-b border-white/5 pt-4 pb-2 px-4 md:pt-24 md:static md:bg-transparent md:border-none md:p-0">
@@ -312,7 +235,6 @@ export default function ProductsPage() {
                       <List className="w-4 h-4" />
                     </button>
                     <div className="w-px h-4 bg-white/10 mx-0.5 self-center" />
-                    {/* Removed 3-column option for desktop */}
                     <button
                       onClick={() => { setViewMode("grid"); setGridCols(4); }}
                       className={`p-2 rounded-md transition-colors cursor-pointer ${viewMode === "grid" && gridCols === 4 ? "bg-white/10 text-white" : "text-text-muted hover:text-white"}`}
@@ -371,7 +293,7 @@ export default function ProductsPage() {
 
               {/* Results count */}
               <div className="mt-3 flex items-center justify-between text-xs text-text-muted px-1">
-                <span>{filteredProducts.length} products</span>
+                <span>{products.length} products</span>
                 {searchQuery && (
                   <span>
                     Searching: &quot;{searchQuery}&quot;
@@ -383,25 +305,38 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Content Constraint Container with detailed padding constraints */}
+      {/* Content Constraint Container */}
       <div className="max-w-[1600px] mx-auto">
         <div className="px-4 md:px-12 lg:px-20 xl:px-24">
             {/* Results count - mobile */}
             <div className="md:hidden text-xs text-text-muted px-2 py-2">
-            {filteredProducts.length} products
+            {products.length} products
             </div>
 
-            {viewMode === "grid" ? (
+            {/* Loading state */}
+            {loading ? (
+              <div className={`grid ${mobileGridClass} sm:grid-cols-2 ${desktopGridClass} gap-2 md:gap-4`}>
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="bg-bg-card border border-white/5 rounded-xl overflow-hidden animate-pulse">
+                    <div className="aspect-square bg-white/5" />
+                    <div className="p-3 md:p-4 space-y-2">
+                      <div className="h-4 bg-white/5 rounded w-16" />
+                      <div className="h-3 bg-white/5 rounded w-24" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : viewMode === "grid" ? (
             <div
                 className={`grid ${mobileGridClass} sm:grid-cols-2 ${desktopGridClass} gap-2 md:gap-4 animate-fade-in`}
             >
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                 <Link
                     key={product.id}
                     href={`/products/${product.id}`}
                     className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
                 >
-                    {/* Image — square aspect ratio */}
+                    {/* Image */}
                     <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
                     <div className="text-neutral-600 text-xs font-medium">
                         Product Image
@@ -415,7 +350,7 @@ export default function ProductsPage() {
                     />
                     </div>
 
-                    {/* Info — price first, name below */}
+                    {/* Info */}
                     <div className="p-3 md:p-4">
                     <div className="font-bold text-white text-sm md:text-base mb-0.5">
                         {product.price}
@@ -429,7 +364,7 @@ export default function ProductsPage() {
             </div>
             ) : (
             <div className="space-y-2 animate-fade-in w-full">
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                 <Link
                     key={product.id}
                     href={`/products/${product.id}`}
@@ -449,7 +384,7 @@ export default function ProductsPage() {
                         {product.name}
                     </h3>
                     <div className="flex items-center gap-3 text-xs md:text-sm text-text-muted">
-                        <span className="capitalize">{product.categories[0]}</span>
+                        <span className="capitalize">{product.categories[0] || ""}</span>
                     </div>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -463,7 +398,7 @@ export default function ProductsPage() {
             )}
 
             {/* Empty state */}
-            {filteredProducts.length === 0 && (
+            {!loading && products.length === 0 && (
             <div className="text-center py-20 animate-fade-in">
                 <div className="text-text-muted text-lg mb-2">No products found</div>
                 <p className="text-text-muted text-sm">

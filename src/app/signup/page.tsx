@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/client";
 
 export default function SignUpPage() {
   const [name, setName] = useState("");
@@ -14,6 +16,9 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const router = useRouter();
 
   const passwordRequirements = [
     { text: "At least 8 characters", met: password.length >= 8 },
@@ -26,13 +31,66 @@ export default function SignUpPage() {
     if (!agreedToTerms) return;
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      setError("Passwords do not match!");
       return;
     }
 
     setIsLoading(true);
-    // ... rest of logic
+    setError(null);
+
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+        },
+      },
+    });
+
+    if (authError) {
+      setError(authError.message);
+      setIsLoading(false);
+      return;
+    }
+
+    setSuccess(true);
+    setIsLoading(false);
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center py-12 px-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8 animate-fade-in-down">
+            <Link href="/" className="inline-flex items-center gap-2">
+              <Image src="/repsupply.png" alt="RepSupply" width={48} height={48} className="animate-float" />
+              <span className="text-3xl font-bold font-[var(--font-poetsen-one)] gradient-text">REPSUPPLY</span>
+            </Link>
+          </div>
+          <div className="bg-bg-card border border-white/5 backdrop-blur-md rounded-3xl p-8 animate-scale-in text-center">
+            <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-8 h-8 text-success" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Check your email</h1>
+            <p className="text-text-secondary text-sm mb-8">
+              We&apos;ve sent a confirmation link to<br />
+              <span className="text-white font-medium">{email}</span>
+            </p>
+            <p className="text-text-muted text-xs mb-6">
+              Click the link in your email to verify your account, then come back here to sign in.
+            </p>
+            <Link href="/login">
+              <Button className="bg-white text-black hover:bg-white/90 border-none font-bold">
+                Go to Login <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4">
@@ -61,6 +119,12 @@ export default function SignUpPage() {
           <p className="text-text-secondary text-center mb-8 text-sm">
             Save finds and track your history.
           </p>
+
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name */}

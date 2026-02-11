@@ -5,24 +5,32 @@ import Link from "next/link";
 import Image from "next/image";
 import { Mail, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
-    // TODO: Integrate with Supabase
-    // const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const supabase = createClient();
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
 
-    console.log("Reset password for:", email);
-    setTimeout(() => {
+    if (resetError) {
+      setError(resetError.message);
       setIsLoading(false);
-      setIsSent(true);
-    }, 1500);
+      return;
+    }
+
+    setIsLoading(false);
+    setIsSent(true);
   };
 
   return (
@@ -62,6 +70,12 @@ export default function ForgotPasswordPage() {
               <p className="text-text-secondary text-center mb-8 text-sm">
                 Enter your email to reset.
               </p>
+
+              {error && (
+                <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                  {error}
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">

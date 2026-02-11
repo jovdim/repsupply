@@ -3,6 +3,7 @@ import { Poetsen_One } from "next/font/google";
 import "./globals.css";
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { AuthProvider } from "@/components/AuthProvider";
 
 const poetsenOne = Poetsen_One({
   weight: "400",
@@ -25,8 +26,10 @@ export default function RootLayout({
       <body className={`${poetsenOne.variable} antialiased`}>
         {/* Grid Background */}
         <div className="grid-background" />
-        <ResponsiveLayout>{children}</ResponsiveLayout>
-        <ScrollToTop />
+        <AuthProvider>
+          <ResponsiveLayout>{children}</ResponsiveLayout>
+          <ScrollToTop />
+        </AuthProvider>
       </body>
     </html>
   );
