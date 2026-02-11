@@ -1,70 +1,38 @@
 "use client";
 
-import { Search, ExternalLink } from "lucide-react";
+import { Search, ExternalLink, Loader2 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
-// Simplified Yupoo Store Data
-const yupooStores = [
-  {
-    id: 1,
-    name: "TopShoeFactory",
-    image: "/test-product-images/img1.avif",
-    link: "https://topshoefactory.x.yupoo.com/",
-  },
-  {
-    id: 2,
-    name: "FashionReps Seller",
-    image: "/test-product-images/img2.avif",
-    link: "https://fashionreps.x.yupoo.com/",
-  },
-  {
-    id: 3,
-    name: "DesignerHub",
-    image: "/test-product-images/img3.avif",
-    link: "https://designerhub.x.yupoo.com/",
-  },
-  {
-    id: 4,
-    name: "StreetStyle",
-    image: "/test-product-images/img4.avif",
-    link: "https://streetstyle.x.yupoo.com/",
-  },
-  {
-    id: 5,
-    name: "LuxuryReps",
-    image: "/test-product-images/img5.avif",
-    link: "https://luxuryreps.x.yupoo.com/",
-  },
-  {
-    id: 6,
-    name: "SneakerKing",
-    image: "/test-product-images/img1.avif", // Reuse existing image for demo
-    link: "https://sneakerking.x.yupoo.com/",
-  },
-  {
-    id: 7,
-    name: "HypeBeast",
-    image: "/test-product-images/img2.avif",
-    link: "https://hypebeast.x.yupoo.com/",
-  },
-  {
-    id: 8,
-    name: "RepLife",
-    image: "/test-product-images/img3.avif",
-    link: "https://replife.x.yupoo.com/",
-  },
-];
+interface YupooStore {
+  id: number;
+  name: string;
+  image: string;
+  link: string;
+}
 
 export default function YupooPage() {
+  const [stores, setStores] = useState<YupooStore[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredStores = yupooStores.filter((store) =>
+  useEffect(() => {
+    async function fetchStores() {
+      const supabase = createClient();
+      const { data } = await supabase.from("yupoo_stores").select("*").order("name");
+      if (data) setStores(data);
+      setLoading(false);
+    }
+    fetchStores();
+  }, []);
+
+  const filteredStores = stores.filter((store) =>
     store.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen animate-fade-in">
       {/* Header Container */}
       <div className="sticky top-0 z-40 bg-bg-primary/95 backdrop-blur-md border-b border-white/5 pt-4 pb-4 md:pt-24 md:static md:bg-transparent md:border-none md:p-0">
          <div className="max-w-[1600px] mx-auto px-4 md:px-12 lg:px-20 xl:px-24">
@@ -97,7 +65,12 @@ export default function YupooPage() {
 
       {/* Grid Content */}
       <div className="max-w-[1600px] mx-auto px-4 md:px-12 lg:px-20 xl:px-24 pb-20">
-        {filteredStores.length > 0 ? (
+        {loading ? (
+           <div className="text-center py-20 text-text-muted animate-pulse">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-neutral-600" />
+              <p>Loading stores...</p>
+           </div>
+        ) : filteredStores.length > 0 ? (
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6">
             {filteredStores.map((store, index) => (
                 <a
@@ -105,17 +78,23 @@ export default function YupooPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 key={store.id}
-                className="group relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/5 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer block animate-fade-in-up"
+                className="group relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/5 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer block animate-scale-in"
                 style={{ animationDelay: `${index * 50}ms` }}
                 >
                 {/* Image */}
+                 {store.image ? (
                     <Image
-                      src={store.image}
-                      alt={store.name}
-                      fill
-                      quality={100}
-                      className="object-cover group-hover:scale-110 transition-transform duration-700"
+                       src={store.image}
+                       alt={store.name}
+                       fill
+                       quality={100}
+                       className="object-cover group-hover:scale-110 transition-transform duration-700"
                     />
+                 ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-white/5">
+                       <span className="text-4xl font-bold text-white/10 uppercase">{store.name.charAt(0)}</span>
+                    </div>
+                 )}
                 
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
@@ -145,8 +124,6 @@ export default function YupooPage() {
             </div>
         )}
       </div>
-
-
     </div>
   );
 }

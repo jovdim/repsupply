@@ -15,40 +15,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { getProducts, type ProductFromDB } from "@/lib/supabase/products";
-
-const categories = [
-  "All",
-  "Tees",
-  "Hoodies",
-  "Jackets",
-  "Tank Tops",
-  "Varsity Jackets",
-  "Sweaters",
-  "Shorts",
-  "Sweatpants",
-  "Pants",
-  "Cargos",
-  "Jorts",
-  "Electronics",
-  "Backpacks",
-  "Underwear",
-  "Socks",
-  "Watches",
-  "Bracelets",
-  "Earrings",
-  "Rings",
-  "Necklaces",
-  "Glasses",
-  "Belts",
-  "Wallets",
-  "Stickers",
-  "Room Decor",
-  "Phone Case",
-  "Ties",
-  "Misc",
-  "Hats",
-  "Beanies",
-];
+import { createClient } from "@/lib/supabase/client";
 
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,6 +28,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<ProductFromDB[]>([]);
   const [allProducts, setAllProducts] = useState<ProductFromDB[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>(["All"]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -69,16 +37,23 @@ export default function ProductsPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Fetch all products once on mount
+  // Fetch all products and categories on mount
   useEffect(() => {
-    async function fetchProducts() {
+    async function fetchData() {
       setLoading(true);
-      const data = await getProducts();
+      const supabase = createClient();
+      const [data, { data: catData }] = await Promise.all([
+        getProducts(),
+        supabase.from("categories").select("name").order("name"),
+      ]);
       setAllProducts(data);
       setProducts(data);
+      if (catData) {
+        setCategories(["All", ...catData.map((c: { name: string }) => c.name)]);
+      }
       setLoading(false);
     }
-    fetchProducts();
+    fetchData();
   }, []);
 
   // Client-side filtering when search/category changes

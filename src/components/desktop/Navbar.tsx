@@ -12,13 +12,17 @@ import {
   LogIn,
   User,
   ShoppingBag,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/components/AuthProvider";
 
 export const Navbar = () => {
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const pathname = usePathname();
   const toolsRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const isAdmin = user?.app_metadata?.role === "admin";
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -161,7 +165,20 @@ export const Navbar = () => {
           </div>
 
           {/* Desktop CTA Buttons */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center gap-2">
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all hover:scale-105 border text-sm ${
+                  pathname.startsWith("/admin")
+                    ? "text-white bg-white/10 shadow-lg border-white/20"
+                    : "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border-amber-500/20 hover:border-amber-500/30"
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                <span>Admin</span>
+              </Link>
+            )}
             <Link
               href="/profile"
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 border ${

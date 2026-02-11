@@ -15,14 +15,27 @@ create table public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- Helper to check if user is admin
+create or replace function public.is_admin()
+returns boolean as $$
+begin
+  return (auth.jwt() ->> 'role') = 'service_role' or 
+         (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin';
+end;
+$$ language plpgsql security definer;
+
 create policy "Public profiles are viewable by everyone"
   on public.profiles for select using (true);
 
 create policy "Users can update own profile"
   on public.profiles for update using (auth.uid() = id);
 
+create policy "Admins can update all profiles"
+  on public.profiles for update using (is_admin());
+
 create policy "Users can insert own profile"
   on public.profiles for insert with check (auth.uid() = id);
+
 
 -- Trigger: auto-create profile on signup
 create or replace function public.handle_new_user()
@@ -53,6 +66,9 @@ alter table public.categories enable row level security;
 create policy "Categories are viewable by everyone"
   on public.categories for select using (true);
 
+create policy "Admins can manage categories"
+  on public.categories for all using (is_admin());
+
 
 -- ==================== PRODUCTS ====================
 create table public.products (
@@ -73,6 +89,9 @@ alter table public.products enable row level security;
 create policy "Products are viewable by everyone"
   on public.products for select using (true);
 
+create policy "Admins can manage products"
+  on public.products for all using (is_admin());
+
 
 -- ==================== PRODUCT_CATEGORIES (join table) ====================
 create table public.product_categories (
@@ -85,6 +104,9 @@ alter table public.product_categories enable row level security;
 
 create policy "Product categories are viewable by everyone"
   on public.product_categories for select using (true);
+
+create policy "Admins can manage product categories"
+  on public.product_categories for all using (is_admin());
 
 
 -- ==================== QC GROUPS ====================
@@ -101,6 +123,9 @@ alter table public.qc_groups enable row level security;
 create policy "QC groups are viewable by everyone"
   on public.qc_groups for select using (true);
 
+create policy "Admins can manage qc groups"
+  on public.qc_groups for all using (is_admin());
+
 
 -- ==================== QC IMAGES ====================
 create table public.qc_images (
@@ -115,6 +140,10 @@ alter table public.qc_images enable row level security;
 
 create policy "QC images are viewable by everyone"
   on public.qc_images for select using (true);
+
+create policy "Admins can manage qc images"
+  on public.qc_images for all using (is_admin());
+
 
 
 -- ==================== FAVORITES ====================

@@ -51,6 +51,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Protect /admin routes — show 404 to unauthorized users
+  // This hides the admin panel's existence from bad actors
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    const isAdmin = user?.app_metadata?.role === "admin";
+    if (!isAdmin) {
+      // Rewrite to a non-existent path → Next.js returns its default 404
+      const url = request.nextUrl.clone();
+      url.pathname = "/__not_found__";
+      return NextResponse.rewrite(url);
+    }
+  }
+
   return supabaseResponse;
 }
 

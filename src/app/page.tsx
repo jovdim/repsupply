@@ -15,16 +15,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getFeaturedProducts, type ProductFromDB } from "@/lib/supabase/products";
+import { createClient } from "@/lib/supabase/client";
 
-
-const categories = [
-  { name: "Shoes", image: "/test-product-images/img1.avif" },
-  { name: "Hoodies", image: "/test-product-images/img2.avif" },
-  { name: "T-Shirts", image: "/test-product-images/img3.avif" },
-  { name: "Pants", image: "/test-product-images/img4.avif" },
-  { name: "Jackets", image: "/test-product-images/img5.avif" },
-  { name: "Accessories", image: "/test-product-images/img1.avif" },
-];
+interface CategoryFromDB {
+  id: number;
+  name: string;
+  slug: string;
+  image: string;
+}
 
 const agents = [
   { name: "AllChinaBuy", logo: "/agent-images/allchinabuy.webp" },
@@ -43,14 +41,26 @@ export default function Home() {
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
   const [featuredProducts, setFeaturedProducts] = useState<ProductFromDB[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [categories, setCategories] = useState<CategoryFromDB[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   useEffect(() => {
-    async function fetchFeatured() {
-      const data = await getFeaturedProducts(12);
-      setFeaturedProducts(data);
+    async function fetchData() {
+      const supabase = createClient();
+      const [products, { data: catData }] = await Promise.all([
+        getFeaturedProducts(12),
+        supabase
+          .from("categories")
+          .select("id, name, slug, image")
+          .eq("is_featured", true)
+          .order("name"),
+      ]);
+      setFeaturedProducts(products);
       setLoadingProducts(false);
+      setCategories(catData || []);
+      setLoadingCategories(false);
     }
-    fetchFeatured();
+    fetchData();
   }, []);
 
   const toggleFAQ = (index: number) => {
@@ -248,27 +258,41 @@ export default function Home() {
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none md:hidden" />
 
           <div className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 overflow-x-auto md:overflow-visible scrollbar-hide pb-2 md:pb-0 px-2 md:px-0">
-            {categories.map((cat) => (
-              <div
-                key={cat.name}
-                className="group relative flex-shrink-0 w-24 md:w-auto aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-white/10 bg-bg-card cursor-pointer transform hover:scale-105 transition-all duration-500 shadow-lg hover:shadow-2xl"
-              >
-                <Image
-                  src={cat.image}
-                  alt={cat.name}
-                  fill
-                  quality={100}
-                  className="object-cover group-hover:scale-110 transition-transform duration-700"
+            {loadingCategories ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex-shrink-0 w-24 md:w-auto aspect-square rounded-xl md:rounded-2xl bg-white/5 animate-pulse border border-white/5"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-black/40 group-hover:via-black/10 transition-all duration-500" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-sm md:text-lg font-bold text-white tracking-wide drop-shadow-lg group-hover:scale-110 transition-transform duration-300 text-center px-2">
-                    {cat.name}
-                  </span>
-                </div>
-                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl md:rounded-2xl" />
-              </div>
-            ))}
+              ))
+            ) : categories.length === 0 ? (
+              <div className="col-span-full text-center py-8 text-text-muted text-sm">No categories yet</div>
+            ) : (
+              categories.map((cat) => (
+                <Link
+                  key={cat.id}
+                  href={`/products?category=${cat.name}`}
+                  className="group relative flex-shrink-0 w-24 md:w-auto aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-white/10 bg-bg-card cursor-pointer transform hover:scale-105 transition-all duration-500 shadow-lg hover:shadow-2xl"
+                >
+                  {cat.image && (
+                    <Image
+                      src={cat.image}
+                      alt={cat.name}
+                      fill
+                      quality={100}
+                      className="object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-black/40 group-hover:via-black/10 transition-all duration-500" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-sm md:text-lg font-bold text-white tracking-wide drop-shadow-lg group-hover:scale-110 transition-transform duration-300 text-center px-2">
+                      {cat.name}
+                    </span>
+                  </div>
+                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl md:rounded-2xl" />
+                </Link>
+              ))
+            )}
           </div>
 
           {/* Scroll Buttons - Right side on Mobile */}
