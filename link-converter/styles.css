@@ -1,0 +1,160 @@
+* {
+  color: white;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 20px;
+  background-color: #1c1c1c;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  border: solid 1px #3a3c56;
+  max-width: 700px;
+  width: 100%;
+  border-radius: 12px;
+  padding: 40px;
+  background-color: #313338;
+}
+.input-div {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 10px;
+}
+
+input {
+  padding: 10px;
+  height: 50px;
+  border-radius: 12px;
+  border: none;
+  color: white;
+  background-color: #1c1c1c9f;
+  border: solid 1px rgba(255, 255, 255, 0.219);
+}
+
+.convert-btn {
+  height: 40px;
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 12px;
+  background-color: #48563a;
+  border: none;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.convert-btn:hover {
+  background-color: #5e724a;
+}
+.convert-btn:active {
+  background-color: #759c4d;
+}
+
+.link-style {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background-color: #3a3c5663;
+  color: #ebebeb;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  margin: 0 12px;
+}
+.copy-btn {
+  background-color: #48563a;
+  border: none;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 4px;
+  text-align: center;
+}
+.copy-btn:hover {
+  background-color: #5e724a;
+}
+
+.copy-btn:active {
+  background-color: #759c4d;
+}
+
+.btn-img {
+  width: 25px;
+  height: 25px;
+  opacity: 80%;
+}
+
+ul {
+  list-style: none;
+  padding-left: 0;
+  margin-left: 0;
+  max-width: px;
+  width: 100%;
+}
+li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: solid 1px #575b8a;
+  margin: 8px 0;
+  border-radius: 12px;
+  width: 100%;
+  height: 70px;
+  padding: 0 12px;
+}
+li a {
+  text-decoration: none;
+}
+
+.agent-logo {
+  background-color: #3a3c56;
+  width: 40px;
+  height: 40px;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.agent-logo-link {
+  max-width: 650px;
+  white-space: nowrap;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+}
+.raw-title {
+  font-size: 14px;
+  background-color: #3a3c56;
+  font-weight: bold;
+  padding: 12px 5px;
+  border-radius: 12px;
+}
+
+.separator {
+  margin: 60px auto;
+  width: 80%;
+  height: 1px;
+  background-color: #dbd7d769;
+}
+
+.social-icons-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 50px;
+  font-size: 12px;
+}
+
+.social-icon {
+  width: 30px;
+  height: 30px;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 10px;
+  }
+}

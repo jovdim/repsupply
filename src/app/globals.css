@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #09090b; /* Zinc 950 - Premium dark */
+  --color-bg-secondary: #ffffff; /* White - High contrast accent */
+  --color-bg-card: #18181b; /* Zinc 900 */
+  --color-bg-hover: #27272a; /* Zinc 800 */
+
+  --color-text-primary: #fafafa; /* Zinc 50 */
+  --color-text-secondary: #a1a1aa; /* Zinc 400 */
+  --color-text-muted: #71717a; /* Zinc 500 */
+  --color-text-heading: rgba(
+    255,
+    255,
+    255,
+    0.8
+  ); /* Section headings - subtle white */
+
+  --color-accent-light: #e4e4e7; /* Zinc 200 */
+  --color-border: #27272a; /* Zinc 800 */
+
+  --color-success: #22c55e;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+
+  --font-poetsen-one: "Poetsen One", sans-serif;
+  --font-inter: "Inter", sans-serif;
+}
+
+/* Base Styles */
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-inter);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Grid Background - Professional, Larger, Subtle */
+.grid-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+/* Professional Utilities */
+.glass {
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-panel {
+  background: #18181b;
+  border: 1px solid #27272a;
+}
+
+.text-gradient {
+  background: linear-gradient(to bottom right, #ffffff, #a1a1aa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Clean Animations - Swift & Professional */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hover-scale {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-glow {
+  transition: all 0.2s ease;
+}
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Utilities */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Continuous Scrolling Animation */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 30s linear infinite;
+  will-change: transform;
+}
