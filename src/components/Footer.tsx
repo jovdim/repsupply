@@ -18,6 +18,7 @@ export const Footer = () => {
                   alt="RepSupply Logo"
                   width={32}
                   height={32}
+                  quality={100}
                   className="w-8 h-8 object-contain"
                 />
               </div>

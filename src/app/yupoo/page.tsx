@@ -105,16 +105,17 @@ export default function YupooPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 key={store.id}
-                className="group relative aspect-square bg-white/5 border border-white/5 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer block animate-fade-in-up"
+                className="group relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/5 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer block animate-fade-in-up"
                 style={{ animationDelay: `${index * 50}ms` }}
                 >
                 {/* Image */}
-                <Image
-                    src={store.image}
-                    alt={store.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
-                />
+                    <Image
+                      src={store.image}
+                      alt={store.name}
+                      fill
+                      quality={100}
+                      className="object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
                 
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />

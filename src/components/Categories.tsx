@@ -22,18 +22,19 @@ export function Categories() {
         {categories.map((cat) => (
           <div
             key={cat.name}
-            className="bg-neutral-800 rounded-2xl overflow-hidden shadow-lg hover:scale-105 transform transition duration-300 cursor-pointer flex flex-col h-full"
+            className="bg-bg-card rounded-2xl overflow-hidden shadow-lg hover:scale-105 transform transition duration-300 cursor-pointer flex flex-col h-full"
           >
-            <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-neutral-700">
+            <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-neutral-800 to-neutral-900">
               <Image
                 src={cat.image}
                 alt={cat.name}
-                width={300}
-                height={224}
+                width={160}
+                height={160}
+                quality={100}
                 className="w-full h-auto max-h-48 sm:max-h-56 object-contain"
               />
             </div>
-            <div className="p-3 sm:p-4 text-center font-semibold uppercase tracking-wider bg-neutral-800 border-t border-neutral-700">
+            <div className="p-3 sm:p-4 text-center font-semibold uppercase tracking-wider bg-bg-card border-t border-white/5">
               {cat.name}
             </div>
           </div>

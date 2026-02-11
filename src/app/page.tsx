@@ -113,11 +113,16 @@ const categories = [
 ];
 
 const agents = [
-  { name: "CNFans", logo: "/logos/cnfans.png" }, // Mock paths, using text fallback if image fails
-  { name: "Mulebuy", logo: "/logos/mulebuy.png" },
-  { name: "ACBuy", logo: "/logos/acbuy.png" },
-  { name: "Superbuy", logo: "/logos/superbuy.png" },
-  { name: "Sugargoo", logo: "/logos/sugargoo.png" },
+  { name: "AllChinaBuy", logo: "/agent-images/allchinabuy.webp" },
+  { name: "CNFans", logo: "/agent-images/cnfans.webp" },
+  { name: "Mulebuy", logo: "/agent-images/mulebuy.webp" },
+  { name: "ACBuy", logo: "/agent-images/acbuy.webp" },
+  { name: "Superbuy", logo: "/agent-images/superbuy.webp" },
+  { name: "Sugargoo", logo: "/agent-images/sugargoo.webp" },
+  { name: "OrientDig", logo: "/agent-images/orientdig.webp" },
+  { name: "Hoobuy", logo: "/agent-images/hoobuy.webp" },
+  { name: "Oopbuy", logo: "/agent-images/oopbuy.webp" },
+  { name: "Kakobuy", logo: "/agent-images/kakobuy.webp" },
 ];
 
 export default function Home() {
@@ -167,11 +172,11 @@ export default function Home() {
         {/* Background Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-500px h-500px bg-white/5 blur-[100px] rounded-full pointer-events-none" />
 
-        <h1 className="relative text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] font-bold font-[var(--font-poetsen-one)] tracking-tight mb-4">
+        <h1 className="relative text-6xl md:text-8xl lg:text-9xl xl:text-[10rem] font-bold font-[var(--font-poetsen-one)] tracking-tight mb-4">
           REPSUPPLY
         </h1>
         <p className="relative text-xl md:text-2xl lg:text-3xl xl:text-4xl font-medium text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
-          Reps redefined, quality finds.
+          Reps redefined, Quality find.
         </p>
       </div>
 
@@ -268,6 +273,7 @@ export default function Home() {
                   src={product.image}
                   alt={product.name}
                   fill
+                  quality={100}
                   className="object-contain group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -293,42 +299,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* SUPPORTED AGENTS */}
-      <div className="border-y border-white/5 bg-gradient-to-b from-white/[0.01] to-white/[0.02] py-8 md:py-16 mb-8 md:mb-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <h3 className="text-center text-text-muted text-sm uppercase tracking-widest mb-6 font-medium">
-            Supported Agents
-          </h3>
-          <div className="relative overflow-hidden">
-            {/* Fade effects for smooth edges */}
-            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white/[0.01] to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white/[0.01] to-transparent z-10 pointer-events-none" />
-
-            {/* Scrolling container */}
-            <div className="flex animate-scroll">
-              {/* First set of agents */}
-              {agents
-                .concat(agents)
-                .concat(agents)
-                .map((agent, index) => (
-                  <div
-                    key={`${agent.name}-${index}`}
-                    className="flex-shrink-0 mx-4 md:mx-8 group"
-                  >
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 rounded-lg blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                      <div className="relative text-lg md:text-2xl font-bold font-[var(--font-poetsen-one)] text-white/60 hover:text-white transition-all duration-300 cursor-default transform group-hover:scale-105 whitespace-nowrap">
-                        {agent.name}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* SHOP BY CATEGORY */}
+   {/* SHOP BY CATEGORY */}
       <div className="max-w-7xl mx-auto px-4 py-8 md:py-16 mb-8 md:mb-16">
         <h2 className="text-lg md:text-2xl font-semibold text-[var(--color-text-heading)] text-center mb-6 md:mb-8 uppercase tracking-wider">
           Browse Categories
@@ -342,12 +313,13 @@ export default function Home() {
             {categories.map((cat) => (
               <div
                 key={cat.name}
-                className="group relative flex-shrink-0 w-24 md:w-auto aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-white/10 cursor-pointer transform hover:scale-105 transition-all duration-500 shadow-lg hover:shadow-2xl"
+                className="group relative flex-shrink-0 w-24 md:w-auto aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-white/10 bg-bg-card cursor-pointer transform hover:scale-105 transition-all duration-500 shadow-lg hover:shadow-2xl"
               >
                 <Image
                   src={cat.image}
                   alt={cat.name}
                   fill
+                  quality={100}
                   className="object-cover group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-black/40 group-hover:via-black/10 transition-all duration-500" />
@@ -389,6 +361,52 @@ export default function Home() {
         </div>
       </div>
 
+      {/* SUPPORTED AGENTS */}
+      <div className="py-8 md:py-16 mb-8 md:mb-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-lg md:text-2xl font-semibold text-[var(--color-text-heading)] text-center mb-10 uppercase tracking-wider">
+            Supported Agents
+          </h2>
+          <div className="relative overflow-hidden">
+            {/* Fade effects for smooth edges */}
+            <div className="absolute left-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none" />
+
+            {/* Scrolling container */}
+            <div className="flex w-max animate-scroll hover:[animation-play-state:paused]">
+              {/* Sets of agents for continuous loop */}
+              {[...Array(4)].map((_, setIndex) => (
+                <div key={setIndex} className="flex flex-shrink-0">
+                  {agents.map((agent, index) => (
+                    <div
+                      key={`${agent.name}-${setIndex}-${index}`}
+                      className="flex-shrink-0 mx-3 md:mx-3 group flex items-center gap-2"
+                    >
+                      <div className="relative w-8 h-8 md:w-10 md:h-10 opacity-40 group-hover:opacity-100 transition-opacity duration-300 grayscale group-hover:grayscale-0">
+                        <Image
+                          src={agent.logo}
+                          alt={agent.name}
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-white/5 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-lg blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="relative text-sm md:text-xl font-bold font-[var(--font-poetsen-one)] text-white/40 group-hover:text-white transition-all duration-300 cursor-default transform group-hover:scale-105 whitespace-nowrap uppercase tracking-tighter">
+                          {agent.name}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+   
+
       {/* HOT PRODUCTS */}
       <div className="px-4 md:max-w-7xl md:mx-auto py-8 md:py-16 mb-8 md:mb-16">
         <h2 className="text-xl md:text-2xl font-semibold text-[var(--color-text-heading)] text-center mb-8 md:mb-12 uppercase tracking-wider">
@@ -409,6 +427,7 @@ export default function Home() {
                   src={product.image}
                   alt={product.name}
                   fill
+                  quality={100}
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -447,7 +466,7 @@ export default function Home() {
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                className="bg-bg-card/20 border border-white/5 rounded-2xl overflow-hidden"
+                className="bg-bg-card border border-white/5 rounded-2xl overflow-hidden"
               >
                 <button
                   onClick={() => toggleFAQ(index)}
@@ -497,7 +516,7 @@ export default function Home() {
 
             <div className="flex flex-col items-center text-center">
               {/* Discord Logo */}
-              <div className="w-20 h-20 bg-gradient-to-br from-white/10 to-white/5 rounded-3xl flex items-center justify-center mb-8 border border-white/20 shadow-lg">
+              <div className="w-20 h-20 bg-bg-card rounded-3xl flex items-center justify-center mb-8 border border-white/20 shadow-lg">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
                   <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z" />
                 </svg>

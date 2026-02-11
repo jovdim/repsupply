@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Reset Card */}
-        <div className="bg-white/5 border border-white/5 backdrop-blur-md rounded-3xl p-8 animate-scale-in">
+        <div className="bg-bg-card border border-white/5 backdrop-blur-md rounded-3xl p-8 animate-scale-in">
           {!isSent ? (
             <>
               <Link

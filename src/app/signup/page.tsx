@@ -54,7 +54,7 @@ export default function SignUpPage() {
         </div>
 
         {/* Sign Up Card */}
-        <div className="bg-white/5 border border-white/5 backdrop-blur-md rounded-3xl p-8 animate-scale-in">
+        <div className="bg-bg-card border border-white/5 backdrop-blur-md rounded-3xl p-8 animate-scale-in">
           <h1 className="text-2xl font-bold text-white text-center mb-2">
             Create Account
           </h1>

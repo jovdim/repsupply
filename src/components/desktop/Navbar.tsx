@@ -79,12 +79,14 @@ export const Navbar = () => {
           <Link href="/" className="flex items-center space-x-2 shrink-0 group">
             <div className="w-8 h-8 flex items-center justify-center transition-transform group-hover:scale-110">
               <Image
-                src="/repsupply.png"
-                alt="RepSupply Logo"
-                width={32}
-                height={32}
-                className="w-8 h-8 object-contain"
-              />
+              src="/repsupply.png"
+              alt="RepSupply"
+              width={32}
+              height={32}
+              quality={100}
+              priority={true}
+              className="group-hover:animate-float"
+            />
             </div>
             <span className="text-lg font-bold text-text-primary hidden sm:block font-[var(--font-poetsen-one)] gradient-text">
               REPSUPPLY

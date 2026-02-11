@@ -161,10 +161,10 @@ export default function ProfilePage() {
                      <Link
                         key={item.id}
                         href={`/products/${item.id}`}
-                        className="group relative bg-white/5 border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all cursor-pointer block"
+                        className="group relative bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all cursor-pointer block"
                     >
-                        <div className="aspect-square relative bg-white/5">
-                            <Image src={item.image} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="aspect-square relative bg-gradient-to-br from-neutral-800 to-neutral-900">
+                            <Image src={item.image} alt={item.name} fill quality={100} className="object-cover group-hover:scale-105 transition-transform duration-500" />
                         </div>
                         <div className="p-3">
                             <div className="font-bold text-white text-sm mb-0.5">{item.price}</div>
@@ -188,10 +188,10 @@ export default function ProfilePage() {
                      <Link
                         key={item.id}
                         href={`/products/${item.id}`}
-                        className="group relative bg-white/5 border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all cursor-pointer block"
+                        className="group relative bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all cursor-pointer block"
                      >
-                        <div className="aspect-square relative bg-white/5">
-                            <Image src={item.image} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="aspect-square relative bg-gradient-to-br from-neutral-800 to-neutral-900">
+                            <Image src={item.image} alt={item.name} fill quality={100} className="object-cover group-hover:scale-105 transition-transform duration-500" />
                             {/* Time Badge */}
                             <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[9px] font-medium text-text-secondary flex items-center gap-1">
                                 <Clock className="w-2.5 h-2.5" />
@@ -210,7 +210,7 @@ export default function ProfilePage() {
         {activeTab === "account" && (
             <div className="max-w-md mx-auto animate-fade-in">
                 {/* Change Password */}
-                <div className="bg-white/5 border border-white/5 rounded-2xl p-6">
+                <div className="bg-bg-card border border-white/5 rounded-2xl p-6">
                     <div className="flex items-center gap-2 mb-6 text-white">
                         <Lock className="w-5 h-5" />
                         <h2 className="text-lg font-bold">Security</h2>

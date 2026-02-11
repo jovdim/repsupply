@@ -165,6 +165,7 @@ export default function ConverterPage() {
                       alt={agent.name}
                       width={36}
                       height={36}
+                      quality={100}
                       className="object-contain"
                     />
                   </div>

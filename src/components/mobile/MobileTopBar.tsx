@@ -11,10 +11,12 @@ export const MobileTopBar = () => {
           <div className="w-7 h-7 flex items-center justify-center">
             <Image
               src="/repsupply.png"
-              alt="RepSupply Logo"
-              width={28}
-              height={28}
-              className="w-7 h-7 object-contain"
+              alt="RepSupply"
+              width={32}
+              height={32}
+              quality={100}
+              priority={true}
+              className="animate-float"
             />
           </div>
           <span className="text-lg font-bold text-text-primary font-[var(--font-poetsen-one)] gradient-text">

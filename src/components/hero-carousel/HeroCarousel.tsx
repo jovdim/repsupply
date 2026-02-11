@@ -156,6 +156,8 @@ const Carousel: React.FC<CarouselProps> = ({
               alt={product.name}
               width={260}
               height={300}
+              quality={100}
+              priority={true}
               className="w-full h-auto"
             />
             {showProductInfo && (

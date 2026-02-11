@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useRef, useEffect } from "react";
 import {
   ArrowLeft,
   ShoppingBag,
@@ -345,6 +345,32 @@ export default function ProductDetailPage({
   const product = allProducts.find((p) => p.id === productId);
 
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+  const [showLeftFade, setShowLeftFade] = useState(false);
+  const [showRightFade, setShowRightFade] = useState(true);
+  const qcGroupsRef = useRef<HTMLDivElement>(null);
+
+  const checkScroll = () => {
+    if (qcGroupsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = qcGroupsRef.current;
+      setShowLeftFade(scrollLeft > 10);
+      setShowRightFade(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [product?.qcImages.length]);
+
+  const scrollQcGroups = (direction: "left" | "right") => {
+    if (qcGroupsRef.current) {
+      qcGroupsRef.current.scrollBy({
+        left: direction === "left" ? -240 : 240,
+        behavior: "smooth",
+      });
+    }
+  };
   const [copied, setCopied] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -440,13 +466,14 @@ export default function ProductDetailPage({
       <div className="max-w-6xl mx-auto px-4 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 mb-16">
           {/* Product Image */}
-          <div className="relative aspect-square bg-white/5 border border-white/5 rounded-2xl overflow-hidden group">
+          <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/5 rounded-2xl overflow-hidden group">
             <Image
               src={product.image}
               alt={product.name}
               fill
+              quality={100}
+              priority={true}
               className="object-cover group-hover:scale-105 transition-transform duration-700"
-              priority
             />
           </div>
 
@@ -537,62 +564,90 @@ export default function ProductDetailPage({
                 {/* Horizontal Scroll Controls could go here if list is long */}
             </div>
 
-            <div className="flex overflow-x-auto gap-4 scrollbar-hide pb-4 -mx-4 px-4 md:mx-0 md:px-0">
-              {product.qcImages.map((group, groupIdx) => {
-                const currentIndex = qcCardIndices[groupIdx] || 0;
-                const currentImage = group.images[currentIndex];
-                const totalImages = group.images.length;
+            <div className="relative group -mx-4 px-4 md:mx-0 md:px-0">
+              {/* Desktop Navigation Arrows */}
+              <button
+                onClick={() => scrollQcGroups("left")}
+                className={`hidden lg:flex absolute -left-12 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/5 border border-white/10 items-center justify-center hover:bg-white/10 transition-all z-20 cursor-pointer ${showLeftFade ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                title="Previous gallery"
+              >
+                <ChevronLeft className="w-4 h-4 text-white" />
+              </button>
+              
+              <button
+                onClick={() => scrollQcGroups("right")}
+                className={`hidden lg:flex absolute -right-12 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/5 border border-white/10 items-center justify-center hover:bg-white/10 transition-all z-20 cursor-pointer ${showRightFade ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                title="Next gallery"
+              >
+                <ChevronRight className="w-4 h-4 text-white" />
+              </button>
 
-                return (
-                  <div key={groupIdx} className="flex-shrink-0 w-48 md:w-56 bg-white/5 border border-white/5 rounded-xl overflow-hidden flex flex-col group/card hover:border-white/20 transition-all">
-                    {/* Image Area */}
-                    <div className="relative aspect-[4/3] bg-black/20">
-                        <Image
-                            src={currentImage}
-                            alt={`${group.folder} photo ${currentIndex + 1}`}
-                            fill
-                            className="object-cover"
-                        />
-                        
-                        {/* Count Badge */}
-                        <div className="absolute top-3 right-3 bg-black/60 text-white text-[10px] font-medium px-2 py-1 rounded-full backdrop-blur-md">
-                            {currentIndex + 1} of {totalImages}
-                        </div>
+              {/* Fades */}
+              <div className={`absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none transition-opacity duration-300 ${showLeftFade ? 'opacity-100' : 'opacity-0'}`} />
+              <div className={`absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none transition-opacity duration-300 ${showRightFade ? 'opacity-100' : 'opacity-0'}`} />
 
-                        {/* Navigation Arrows (Show on hover or always on mobile?) */}
-                        {totalImages > 1 && (
-                            <>
-                                <button 
-                                    onClick={(e) => toggleQcCardImage(groupIdx, "prev", totalImages, e)}
-                                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity z-10"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                </button>
-                                <button 
-                                    onClick={(e) => toggleQcCardImage(groupIdx, "next", totalImages, e)}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity z-10"
-                                >
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
-                            </>
-                        )}
-                        
-                        {/* Enlarge Button (Clicking image works too in this model via outer div if we wanted, but let's add a button) */}
-                        <button 
-                            onClick={() => openLightbox(currentImage)}
-                            className="absolute inset-0 z-0"
-                        />
+              <div 
+                ref={qcGroupsRef}
+                onScroll={checkScroll}
+                className="flex overflow-x-auto gap-4 scrollbar-hide pb-4"
+              >
+                {product.qcImages.map((group, groupIdx) => {
+                  const currentIndex = qcCardIndices[groupIdx] || 0;
+                  const currentImage = group.images[currentIndex];
+                  const totalImages = group.images.length;
+
+                  return (
+                    <div key={groupIdx} className="flex-shrink-0 w-48 md:w-56 bg-bg-card border border-white/5 rounded-xl overflow-hidden flex flex-col group/card hover:border-white/20 transition-all">
+                      {/* Image Area */}
+                      <div className="relative aspect-[4/3] bg-gradient-to-br from-neutral-800 to-neutral-900">
+                          <Image
+                              src={currentImage}
+                              alt={`${group.folder} photo ${currentIndex + 1}`}
+                              fill
+                              quality={100}
+                              className="object-cover"
+                          />
+                          
+                          {/* Count Badge */}
+                          <div className="absolute top-3 right-3 bg-black/60 text-white text-[10px] font-medium px-2 py-1 rounded-full backdrop-blur-md">
+                              {currentIndex + 1} of {totalImages}
+                          </div>
+
+                          {/* Navigation Arrows (Show on hover or always on mobile?) */}
+                          {totalImages > 1 && (
+                              <>
+                                  <button 
+                                      onClick={(e) => toggleQcCardImage(groupIdx, "prev", totalImages, e)}
+                                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity z-10"
+                                  >
+                                      <ChevronLeft className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                      onClick={(e) => toggleQcCardImage(groupIdx, "next", totalImages, e)}
+                                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity z-10"
+                                  >
+                                      <ChevronRight className="w-4 h-4" />
+                                  </button>
+                              </>
+                          )}
+                          
+                          {/* Enlarge Button */}
+                          <button 
+                              onClick={() => openLightbox(currentImage)}
+                              className="absolute inset-0 z-0"
+                          />
+                      </div>
+
+                      {/* Metadata Footer - Simplified */}
+                      <div className="p-3 bg-bg-card">
+                          <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium text-white group-hover/card:text-indigo-400 transition-colors uppercase tracking-wider">{group.folder}</span>
+                          </div>
+                      </div>
                     </div>
-
-                    {/* Metadata Footer - Simplified */}
-                    <div className="p-3 bg-white/[0.02]">
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-white group-hover/card:text-indigo-400 transition-colors">{group.folder}</span>
-                        </div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -608,13 +663,14 @@ export default function ProductDetailPage({
                 <Link
                   key={p.id}
                   href={`/products/${p.id}`}
-                  className="bg-white/5 border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
+                  className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
                 >
                   <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900">
                     <Image
                       src={p.image}
                       alt={p.name}
                       fill
+                      quality={100}
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
