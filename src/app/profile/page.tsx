@@ -134,7 +134,7 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto">
         {/* Profile Header */}
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-10 animate-fade-in">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-2xl font-bold text-white shadow-lg">
+          <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center text-2xl font-bold text-white shadow-lg border border-white/5">
             {userName.charAt(0).toUpperCase()}
           </div>
           <div className="text-center md:text-left">
@@ -160,7 +160,7 @@ export default function ProfilePage() {
         <div className="flex border-b border-white/5 mb-8">
           {[
             { key: "saved" as const, icon: Heart, label: "Saved" },
-            { key: "history" as const, icon: Clock, label: "History" },
+            { key: "history" as const, icon: Clock, label: "Recently Viewed" },
             { key: "account" as const, icon: Settings, label: "Account" },
           ].map((tab) => (
             <button
@@ -189,16 +189,16 @@ export default function ProfilePage() {
           {activeTab === "saved" && (
             <div>
               {dataLoading ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {Array.from({ length: 6 }).map((_, i) => (
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                  {Array.from({ length: 10 }).map((_, i) => (
                     <div
                       key={i}
                       className="bg-bg-card border border-white/5 rounded-xl overflow-hidden animate-pulse"
                     >
                       <div className="aspect-square bg-white/5" />
-                      <div className="p-3 space-y-2">
-                        <div className="h-4 bg-white/5 rounded w-16" />
-                        <div className="h-3 bg-white/5 rounded w-24" />
+                      <div className="p-2 space-y-2">
+                        <div className="h-3 bg-white/5 rounded w-12" />
+                        <div className="h-2 bg-white/5 rounded w-20" />
                       </div>
                     </div>
                   ))}
@@ -220,14 +220,14 @@ export default function ProfilePage() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                   {savedItems.map((item) => (
                     <Link
                       key={item.id}
                       href={`/products/${item.id}`}
                       className="bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all group cursor-pointer"
                     >
-                      <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900">
+                      <div className="relative aspect-square bg-neutral-900">
                         <Image
                           src={item.image}
                           alt={item.name}
@@ -236,11 +236,11 @@ export default function ProfilePage() {
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       </div>
-                      <div className="p-3">
-                        <div className="font-bold text-white text-sm mb-0.5">
+                      <div className="p-2">
+                        <div className="font-bold text-white text-xs mb-0.5">
                           {item.price}
                         </div>
-                        <h3 className="text-text-muted text-xs line-clamp-1 group-hover:text-white transition-colors">
+                        <h3 className="text-text-muted text-[10px] line-clamp-1 group-hover:text-white transition-colors">
                           {item.name}
                         </h3>
                       </div>
@@ -251,20 +251,20 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* History Tab */}
+          {/* Recently Viewed Tab */}
           {activeTab === "history" && (
             <div>
               {dataLoading ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                  {Array.from({ length: 10 }).map((_, i) => (
                     <div
                       key={i}
-                      className="bg-bg-card border border-white/5 rounded-xl p-3 flex items-center gap-3 animate-pulse"
+                      className="bg-bg-card border border-white/5 rounded-xl overflow-hidden animate-pulse"
                     >
-                      <div className="w-14 h-14 rounded-lg bg-white/5" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-white/5 rounded w-32" />
-                        <div className="h-3 bg-white/5 rounded w-16" />
+                      <div className="aspect-square bg-white/5" />
+                      <div className="p-2 space-y-2">
+                        <div className="h-3 bg-white/5 rounded w-12" />
+                        <div className="h-2 bg-white/5 rounded w-20" />
                       </div>
                     </div>
                   ))}
@@ -273,7 +273,7 @@ export default function ProfilePage() {
                 <div className="text-center py-16">
                   <Clock className="w-12 h-12 text-text-muted mx-auto mb-4" />
                   <p className="text-text-muted text-lg mb-2">
-                    No history yet
+                    No recently viewed items
                   </p>
                   <p className="text-text-muted text-sm mb-6">
                     Products you view will appear here.
@@ -286,34 +286,36 @@ export default function ProfilePage() {
                   </Link>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                   {historyItems.map((item, idx) => (
                     <Link
                       key={`${item.id}-${idx}`}
                       href={`/products/${item.id}`}
-                      className="bg-bg-card border border-white/5 rounded-xl p-3 flex items-center gap-3 hover:border-white/20 transition-all group cursor-pointer"
+                      className="bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all group cursor-pointer relative"
                     >
-                      <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-neutral-900 flex-shrink-0">
+                      <div className="relative aspect-square bg-neutral-900">
                         <Image
                           src={item.image}
                           alt={item.name}
                           fill
                           quality={100}
-                          className="object-cover"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
+                         {/* Time overlay */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
+                           <div className="flex items-center gap-1 text-[10px] text-white/80">
+                              <Clock className="w-3 h-3" />
+                              <span className="truncate">{item.time}</span>
+                           </div>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-text-primary text-sm mb-0.5 group-hover:text-white transition-colors">
+                      <div className="p-2">
+                        <div className="font-bold text-white text-xs mb-0.5">
+                           {item.price}
+                        </div>
+                        <h3 className="text-text-muted text-[10px] line-clamp-1 group-hover:text-white transition-colors">
                           {item.name}
                         </h3>
-                        <span className="text-text-muted text-xs">
-                          {item.time}
-                        </span>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className="text-white font-bold text-sm">
-                          {item.price}
-                        </span>
                       </div>
                     </Link>
                   ))}
@@ -342,6 +344,21 @@ export default function ProfilePage() {
               )}
 
               <form onSubmit={handlePasswordChange} className="space-y-4">
+                {/* Current Password (UI Only for now as Supabase handles this via email usually, but adding field as requested) */}
+                 <div className="space-y-2">
+                  <label className="text-xs font-medium text-text-secondary">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full bg-black/20 border border-white/10 text-white rounded-xl py-3 pl-11 pr-4 outline-none focus:border-white/30 transition-colors placeholder:text-text-muted text-sm"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-text-secondary">
                     New Password
@@ -390,7 +407,7 @@ export default function ProfilePage() {
                 <Button
                   type="submit"
                   disabled={passwordLoading}
-                  className="bg-white text-black hover:bg-white/90 border-none font-bold"
+                  className="bg-white text-black hover:bg-white/90 border-none font-bold w-full"
                 >
                   {passwordLoading ? (
                     <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
@@ -407,22 +424,22 @@ export default function ProfilePage() {
       {/* Logout Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full animate-scale-in">
-            <h3 className="text-lg font-bold text-white mb-2">Log out?</h3>
-            <p className="text-text-secondary text-sm mb-6">
-              Your favorites and history will be waiting when you come back.
+          <div className="bg-bg-card border border-white/10 rounded-3xl p-8 max-w-sm w-full animate-scale-in">
+            <h3 className="text-xl font-bold text-white mb-2 text-center">Log out?</h3>
+            <p className="text-text-secondary text-sm mb-8 text-center">
+              Are you sure you want to sign out of your account?
             </p>
             <div className="flex gap-3">
               <Button
                 onClick={() => setShowLogoutModal(false)}
                 variant="ghost"
-                className="flex-1 bg-white/5"
+                className="flex-1 bg-white/5 hover:bg-white/10"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleLogout}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white border-none"
+                className="flex-1 bg-white text-black hover:bg-white/90 border-none font-bold"
               >
                 Log out
               </Button>
