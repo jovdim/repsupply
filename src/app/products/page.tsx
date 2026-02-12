@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import {
   Search,
   Grid3X3 as GridIcon,
@@ -10,16 +10,27 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Star,
+  Sparkles,
+  Flame,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { getProducts, type ProductFromDB } from "@/lib/supabase/products";
 import { createClient } from "@/lib/supabase/client";
+import { cacheGet, cacheSet, TTL } from "@/lib/cache";
+import { useSearchParams, useRouter } from "next/navigation";
 
-export default function ProductsPage() {
+type FilterType = "all" | "featured" | "new";
+
+function ProductsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [gridCols, setGridCols] = useState<4 | 5>(5);
   const [mobileGridCols, setMobileGridCols] = useState<2 | 3>(3);
@@ -29,6 +40,16 @@ export default function ProductsPage() {
   const [allProducts, setAllProducts] = useState<ProductFromDB[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>(["All"]);
+
+  // Read URL params on mount
+  useEffect(() => {
+    const catParam = searchParams.get("category");
+    const filterParam = searchParams.get("filter") as FilterType | null;
+    if (catParam) setSelectedCategory(catParam);
+    if (filterParam && ["all", "featured", "new"].includes(filterParam)) {
+      setActiveFilter(filterParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -41,25 +62,50 @@ export default function ProductsPage() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const supabase = createClient();
-      const [data, { data: catData }] = await Promise.all([
+
+      // Check cache for categories
+      const catCacheKey = "categories:names";
+      let catNames = cacheGet<string[]>(catCacheKey);
+
+      const [data, cats] = await Promise.all([
         getProducts(),
-        supabase.from("categories").select("name").order("name"),
+        catNames
+          ? Promise.resolve(catNames)
+          : (async () => {
+              const supabase = createClient();
+              const { data: catData } = await supabase
+                .from("categories")
+                .select("name")
+                .order("name");
+              const names = catData?.map((c: { name: string }) => c.name) || [];
+              cacheSet(catCacheKey, names, TTL.LONG);
+              return names;
+            })(),
       ]);
+
       setAllProducts(data);
       setProducts(data);
-      if (catData) {
-        setCategories(["All", ...catData.map((c: { name: string }) => c.name)]);
-      }
+      setCategories(["All", ...cats]);
       setLoading(false);
     }
     fetchData();
   }, []);
 
-  // Client-side filtering when search/category changes
+  // Client-side filtering when search/category/filter changes
   useEffect(() => {
     let filtered = allProducts;
 
+    // Apply filter tab
+    if (activeFilter === "featured") {
+      filtered = filtered.filter((p) => p.is_featured);
+    } else if (activeFilter === "new") {
+      filtered = [...filtered].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+
+    // Apply category filter
     if (selectedCategory !== "All") {
       filtered = filtered.filter((p) =>
         p.categories.some(
@@ -68,13 +114,33 @@ export default function ProductsPage() {
       );
     }
 
+    // Apply search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter((p) => p.name.toLowerCase().includes(q));
     }
 
     setProducts(filtered);
-  }, [searchQuery, selectedCategory, allProducts]);
+  }, [searchQuery, selectedCategory, activeFilter, allProducts]);
+
+  const handleFilterChange = (filter: FilterType) => {
+    setActiveFilter(filter);
+    // Update URL without full page reload
+    const params = new URLSearchParams();
+    if (filter !== "all") params.set("filter", filter);
+    if (selectedCategory !== "All") params.set("category", selectedCategory);
+    const qs = params.toString();
+    router.replace(`/products${qs ? `?${qs}` : ""}`, { scroll: false });
+  };
+
+  const handleCategoryChange = (cat: string) => {
+    setSelectedCategory(cat);
+    const params = new URLSearchParams();
+    if (activeFilter !== "all") params.set("filter", activeFilter);
+    if (cat !== "All") params.set("category", cat);
+    const qs = params.toString();
+    router.replace(`/products${qs ? `?${qs}` : ""}`, { scroll: false });
+  };
 
   const scrollCategories = (direction: "left" | "right") => {
     if (categoryScrollRef.current) {
@@ -86,12 +152,16 @@ export default function ProductsPage() {
   };
 
   const desktopGridClass =
-    gridCols === 4
-      ? "lg:grid-cols-4"
-      : "lg:grid-cols-5";
+    gridCols === 4 ? "lg:grid-cols-4" : "lg:grid-cols-5";
 
   const mobileGridClass =
     mobileGridCols === 2 ? "grid-cols-2" : "grid-cols-3";
+
+  const filters: { key: FilterType; label: string; icon: any }[] = [
+    { key: "all", label: "All", icon: LayoutGrid },
+    { key: "featured", label: "Featured", icon: Star },
+    { key: "new", label: "New Arrivals", icon: Sparkles },
+  ];
 
   return (
     <div className="min-h-screen pb-12">
@@ -148,6 +218,24 @@ export default function ProductsPage() {
               )}
             </div>
 
+            {/* Mobile Filter Tabs */}
+            <div className="flex gap-1.5">
+              {filters.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => handleFilterChange(f.key)}
+                  className={`flex items-center gap-1 text-xs font-medium whitespace-nowrap px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+                    activeFilter === f.key
+                      ? "bg-white text-black"
+                      : "bg-white/5 text-text-secondary hover:bg-white/10"
+                  }`}
+                >
+                  <f.icon className="w-3 h-3" />
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
             {/* Mobile Categories */}
             <div className="relative">
               <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none" />
@@ -156,10 +244,10 @@ export default function ProductsPage() {
                 {categories.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => handleCategoryChange(cat)}
                     className={`text-xs font-medium whitespace-nowrap px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                       selectedCategory === cat
-                        ? "bg-white text-black"
+                        ? "bg-white/20 text-white border border-white/20"
                         : "bg-white/5 text-text-secondary hover:bg-white/10"
                     }`}
                   >
@@ -199,8 +287,29 @@ export default function ProductsPage() {
                   )}
                 </div>
 
-                {/* Layout controls */}
+                {/* Filter Tabs + Layout controls */}
                 <div className="flex items-center gap-3">
+                  {/* Filter Tabs */}
+                  <div className="flex bg-bg-primary rounded-lg border border-white/5 p-1">
+                    {filters.map((f) => (
+                      <button
+                        key={f.key}
+                        onClick={() => handleFilterChange(f.key)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer ${
+                          activeFilter === f.key
+                            ? "bg-white text-black"
+                            : "text-text-muted hover:text-white"
+                        }`}
+                      >
+                        <f.icon className="w-3.5 h-3.5" />
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="w-px h-6 bg-white/10" />
+
+                  {/* Layout controls */}
                   <div className="flex bg-bg-primary rounded-lg border border-white/5 p-1">
                     <button
                       onClick={() => setViewMode("list")}
@@ -246,10 +355,10 @@ export default function ProductsPage() {
                     {categories.map((cat) => (
                       <button
                         key={cat}
-                        onClick={() => setSelectedCategory(cat)}
+                        onClick={() => handleCategoryChange(cat)}
                         className={`text-sm font-medium whitespace-nowrap px-4 py-1.5 rounded-full transition-all cursor-pointer ${
                           selectedCategory === cat
-                            ? "bg-white text-black"
+                            ? "bg-white/20 text-white border border-white/20"
                             : "bg-white/5 text-text-secondary hover:bg-white/10 hover:text-white"
                         }`}
                       >
@@ -269,11 +378,18 @@ export default function ProductsPage() {
               {/* Results count */}
               <div className="mt-3 flex items-center justify-between text-xs text-text-muted px-1">
                 <span>{products.length} products</span>
-                {searchQuery && (
-                  <span>
-                    Searching: &quot;{searchQuery}&quot;
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {activeFilter !== "all" && (
+                    <span className="bg-white/5 px-2 py-0.5 rounded-full">
+                      {filters.find((f) => f.key === activeFilter)?.label}
+                    </span>
+                  )}
+                  {searchQuery && (
+                    <span>
+                      Searching: &quot;{searchQuery}&quot;
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -323,6 +439,11 @@ export default function ProductsPage() {
                         quality={100}
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
+                    {product.is_featured && (
+                      <div className="absolute top-2 left-2 bg-white/90 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                        <Star className="w-2.5 h-2.5 fill-current" />
+                      </div>
+                    )}
                     </div>
 
                     {/* Info */}
@@ -360,6 +481,11 @@ export default function ProductsPage() {
                     </h3>
                     <div className="flex items-center gap-3 text-xs md:text-sm text-text-muted">
                         <span className="capitalize">{product.categories[0] || ""}</span>
+                        {product.is_featured && (
+                          <span className="flex items-center gap-0.5 text-amber-400">
+                            <Star className="w-3 h-3 fill-current" /> Featured
+                          </span>
+                        )}
                     </div>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -377,10 +503,10 @@ export default function ProductsPage() {
             <div className="text-center py-20 animate-fade-in">
                 <div className="text-text-muted text-lg mb-2">No products found</div>
                 <p className="text-text-muted text-sm">
-                Try adjusting your search or category filter.
+                Try adjusting your search or filters.
                 </p>
                 <button
-                onClick={() => { setSearchQuery(""); setSelectedCategory("All"); }}
+                onClick={() => { setSearchQuery(""); setSelectedCategory("All"); setActiveFilter("all"); }}
                 className="mt-4 text-sm text-white underline underline-offset-4 hover:no-underline cursor-pointer"
                 >
                 Clear all filters
@@ -392,5 +518,19 @@ export default function ProductsPage() {
 
       <div className="h-20" />
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <ProductsContent />
+    </Suspense>
   );
 }

@@ -29,7 +29,7 @@ export default function EditProductPage() {
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
   const [description, setDescription] = useState("");
-  const [badge, setBadge] = useState("");
+
   const [isFeatured, setIsFeatured] = useState(false);
   const [qcGroupCount, setQcGroupCount] = useState(0);
   
@@ -79,8 +79,7 @@ export default function EditProductPage() {
         setImage(product.image);
         setLink(product.link || "");
         setDescription(product.description || "");
-        setBadge(product.badge || "");
-        setBadge(product.badge || "");
+
         setIsFeatured(product.is_featured);
         setQcGroupCount(product.qc_groups?.[0]?.count || 0);
         
@@ -219,7 +218,6 @@ export default function EditProductPage() {
         image,
         link,
         description,
-        badge: badge || null,
         is_featured: isFeatured,
         updated_at: new Date().toISOString(),
       })
@@ -389,15 +387,6 @@ export default function EditProductPage() {
                )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">Badge (Optional)</label>
-              <input
-                type="text"
-                value={badge}
-                onChange={(e) => setBadge(e.target.value)}
-                className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none transition-colors"
-              />
-            </div>
           </div>
 
           <div className="space-y-2">

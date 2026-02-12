@@ -2,21 +2,23 @@ import { createClient } from "@/lib/supabase/client";
 
 /**
  * Record a product view for the current user.
- * Uses upsert-like logic: deletes old entry and inserts new one to keep latest timestamp.
+ * Deletes any existing entry first so the product appears only once
+ * with the latest timestamp.
  */
 export async function recordView(productId: number): Promise<void> {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return;
 
-  // Delete any existing entry for this product (so it moves to top)
+  // Delete existing entry first, then insert — sequential to avoid race
   await supabase
     .from("view_history")
     .delete()
     .eq("user_id", user.id)
     .eq("product_id", productId);
 
-  // Insert new view
   await supabase.from("view_history").insert({
     user_id: user.id,
     product_id: productId,
@@ -25,31 +27,49 @@ export async function recordView(productId: number): Promise<void> {
 
 /**
  * Get the user's view history with product details.
+ * Deduplicates by product_id (keeps only the most recent view).
  */
 export async function getViewHistory(limit: number = 20): Promise<any[]> {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return [];
 
   const { data, error } = await supabase
     .from("view_history")
-    .select(`
+    .select(
+      `
       id,
       viewed_at,
+      product_id,
       products (
         id,
         name,
         price,
         image
       )
-    `)
+    `
+    )
     .eq("user_id", user.id)
     .order("viewed_at", { ascending: false })
-    .limit(limit);
+    .limit(limit * 2); // Fetch extra to account for potential duplicates
 
   if (error || !data) return [];
 
-  return data.map((item: any) => {
+  // Deduplicate by product_id — keep only the most recent
+  const seen = new Set<number>();
+  const unique: any[] = [];
+
+  for (const item of data) {
+    const pid = (item as any).products?.id ?? item.product_id;
+    if (seen.has(pid)) continue;
+    seen.add(pid);
+    unique.push(item);
+    if (unique.length >= limit) break;
+  }
+
+  return unique.map((item: any) => {
     const now = new Date();
     const viewed = new Date(item.viewed_at);
     const diffMs = now.getTime() - viewed.getTime();

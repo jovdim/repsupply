@@ -233,10 +233,14 @@ export default function ProductDetailPage({
             {/* Category badge */}
             <div className="flex items-center gap-2 mb-3">
               {product.categories.map((cat) => (
-                <span key={cat} className="text-xs font-medium text-text-muted bg-white/5 px-2.5 py-1 rounded-full capitalize flex items-center gap-1.5">
+                <Link
+                  key={cat}
+                  href={`/products?category=${encodeURIComponent(cat)}`}
+                  className="text-xs font-medium text-text-muted bg-white/5 px-2.5 py-1 rounded-full capitalize flex items-center gap-1.5 hover:bg-white/10 hover:text-white transition-colors"
+                >
                   <Tag className="w-3 h-3" />
                   {cat}
-                </span>
+                </Link>
               ))}
             </div>
 
