@@ -469,43 +469,18 @@ export default function AdminProductsPage() {
                                <Edit className="w-3.5 h-3.5" />
                             </Link>
                             
-                            <div className="relative">
                                <button 
                                   onClick={(e) => {
                                      e.stopPropagation();
-                                     setConfirmDeleteId(confirmDeleteId === product.id ? null : product.id);
+                                     setConfirmDeleteId(product.id);
                                   }}
-                                  className={`p-2 rounded-lg transition-all active:scale-95 border ${
-                                     confirmDeleteId === product.id 
-                                     ? "bg-red-500 border-red-500 text-white" 
-                                     : "bg-red-500/5 border-red-500/10 text-red-500/60 hover:text-red-400 hover:bg-red-500/10"
-                                  }`}
+                                  className="p-2 bg-red-500/5 border border-red-500/10 text-red-500/60 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all active:scale-95"
                                   title="Delete Product"
                                >
                                   <Trash2 className="w-3.5 h-3.5" />
                                </button>
 
-                               {confirmDeleteId === product.id && (
-                                  <div className="absolute right-0 top-full mt-2 w-40 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
-                                     <div className="px-4 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-widest border-b border-white/5 mb-1">
-                                        Confirm Delete?
-                                     </div>
-                                     <button 
-                                        onClick={() => handleDelete(product.id)}
-                                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors font-semibold"
-                                     >
-                                        <Trash2 className="w-3.5 h-3.5" /> Yes, Delete
-                                     </button>
-                                     <button 
-                                        onClick={() => setConfirmDeleteId(null)}
-                                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-neutral-400 hover:bg-white/5 transition-colors"
-                                     >
-                                        <X className="w-3.5 h-3.5" /> Cancel
-                                     </button>
-                                  </div>
-                               )}
                             </div>
-                         </div>
                       </td>
                     </tr>
                   ))}
@@ -565,6 +540,39 @@ export default function AdminProductsPage() {
           </>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-[10vh]">
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => setConfirmDeleteId(null)}
+          />
+          <div className="bg-neutral-900 border border-white/10 rounded-2xl w-full max-w-sm relative z-10 animate-in zoom-in-95 duration-300 shadow-2xl p-6">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6 text-red-500" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Delete Product?</h2>
+            <p className="text-neutral-400 text-sm mb-6 leading-relaxed">
+              Are you sure you want to delete this product? This will also remove any associated QC photos from the gallery and storage.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 px-4 py-3 rounded-xl text-sm font-bold text-neutral-400 hover:text-white hover:bg-white/5 transition-all"
+              >
+                 Cancel
+              </button>
+              <button
+                onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+                className="flex-1 bg-red-500 text-white px-4 py-3 rounded-xl text-sm font-bold hover:bg-red-400 transition-all active:scale-95"
+              >
+                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

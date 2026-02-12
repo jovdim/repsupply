@@ -24,7 +24,6 @@ export default function NewProductPage() {
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
   const [description, setDescription] = useState("");
-  const [badge, setBadge] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
   
   // Multi-Category State
@@ -153,6 +152,13 @@ export default function NewProductPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    
+    // Validation
+    if (!name || !price || !image || !link || selectedCategoryIds.length === 0) {
+      alert("Please fill in all required fields (Name, Price, Category, Image, and Link).");
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
@@ -165,7 +171,6 @@ export default function NewProductPage() {
         image, 
         link,
         description,
-        badge: badge || null,
         is_featured: isFeatured,
       })
       .select()
@@ -218,7 +223,7 @@ export default function NewProductPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">Product Name</label>
+              <label className="text-sm font-medium text-text-secondary">Product Name <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 required
@@ -230,7 +235,7 @@ export default function NewProductPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">Price</label>
+              <label className="text-sm font-medium text-text-secondary">Price <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 required
@@ -242,7 +247,7 @@ export default function NewProductPage() {
             </div>
 
             <div className="space-y-2 md:col-span-2">
-               <label className="text-sm font-medium text-text-secondary mb-2 block">Categories</label>
+               <label className="text-sm font-medium text-text-secondary mb-2 block">Categories <span className="text-red-500">*</span></label>
                
                {/* Category Search */}
                <div className="relative mb-3">
@@ -314,26 +319,16 @@ export default function NewProductPage() {
                )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">Badge (Optional)</label>
-              <input
-                type="text"
-                value={badge}
-                onChange={(e) => setBadge(e.target.value)}
-                className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none transition-colors"
-                placeholder="e.g. Hot, New, Sale"
-              />
-            </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text-secondary">Description</label>
+            <label className="text-sm font-medium text-text-secondary">Description/Notes</label>
             <textarea
               rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none resize-none transition-colors"
-              placeholder="e.g. Premium quality leather..."
+              placeholder="e.g. Premium quality leather or internal notes..."
             />
           </div>
            
@@ -364,7 +359,7 @@ export default function NewProductPage() {
            <div className="space-y-4">
               {/* Image Upload Zone */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text-secondary">Product Image</label>
+                <label className="text-sm font-medium text-text-secondary">Product Image <span className="text-red-500">*</span></label>
                 
                 <div
                   onDragOver={handleDragOver}
@@ -423,25 +418,13 @@ export default function NewProductPage() {
                     </div>
                   )}
                 </div>
-
-                {/* URL fallback */}
-                <div className="flex items-center gap-2 text-xs text-neutral-600 mt-2">
-                  <span>or paste URL directly:</span>
-                  <input
-                    type="text"
-                    value={image}
-                    onChange={(e) => setImage(e.target.value)}
-                    className="flex-1 bg-transparent border-b border-white/5 py-1 text-neutral-400 focus:border-white/20 outline-none text-xs transition-colors"
-                    placeholder="https://..."
-                  />
-                </div>
               </div>
 
               {/* External Link with Auto-Conversion */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-text-secondary flex items-center gap-2">
                   <Link2 className="w-4 h-4" />
-                  External Link
+                  External Link <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="url"
@@ -449,6 +432,7 @@ export default function NewProductPage() {
                   onChange={(e) => handleLinkChange(e.target.value)}
                   className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none transition-colors"
                   placeholder="Paste a Taobao, Weidian, or 1688 link..."
+                  required
                 />
                 
                 {/* Link conversion status */}

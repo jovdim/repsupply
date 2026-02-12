@@ -205,7 +205,8 @@ export default function AdminCategoriesPage() {
   }, [searchQuery]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="relative">
+      <div className="space-y-6 animate-fade-in pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white mb-1">Categories</h1>
@@ -262,7 +263,6 @@ export default function AdminCategoriesPage() {
                 <tr>
                   <th className="px-6 py-4">Category</th>
                   <th className="px-6 py-4">Slug</th>
-                  <th className="px-6 py-4">Products</th>
                   <th className="px-6 py-4">Featured</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -286,9 +286,6 @@ export default function AdminCategoriesPage() {
                       <code className="text-xs text-neutral-400 bg-white/5 px-2 py-1 rounded font-mono">
                         /{cat.slug}
                       </code>
-                    </td>
-                    <td className="px-6 py-4 text-neutral-400 text-sm">
-                      —
                     </td>
                     <td className="px-6 py-4">
                       <button
@@ -317,39 +314,14 @@ export default function AdminCategoriesPage() {
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
-                        <div className="relative">
                           <button
-                            onClick={() => setConfirmDeleteId(confirmDeleteId === cat.id ? null : cat.id)}
-                            className={`p-2 rounded-lg transition-all active:scale-95 border ${
-                              confirmDeleteId === cat.id
-                                ? "bg-red-500 border-red-500 text-white"
-                                : "bg-red-500/5 border-red-500/10 text-red-500/60 hover:text-red-400 hover:bg-red-500/10"
-                            }`}
+                            onClick={() => setConfirmDeleteId(cat.id)}
+                            className="p-2 bg-red-500/5 border border-red-500/10 text-red-500/60 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all active:scale-95"
                             title="Delete Category"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                          {confirmDeleteId === cat.id && (
-                            <div className="absolute right-0 top-full mt-2 w-40 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
-                              <div className="px-4 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-widest border-b border-white/5 mb-1">
-                                Confirm Delete?
-                              </div>
-                              <button
-                                onClick={() => handleDelete(cat.id)}
-                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors font-semibold"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" /> Yes, Delete
-                              </button>
-                              <button
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-neutral-400 hover:bg-white/5 transition-colors"
-                              >
-                                <X className="w-3.5 h-3.5" /> Cancel
-                              </button>
-                            </div>
-                          )}
                         </div>
-                      </div>
                     </td>
                   </tr>
                 ))}
@@ -408,57 +380,68 @@ export default function AdminCategoriesPage() {
           </div>
         )}
       </div>
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onPaste={handlePaste}>
-          <div className="bg-neutral-900 border border-white/10 rounded-2xl p-6 max-w-md w-full animate-scale-in">
-            <div className="flex items-center justify-between mb-6">
-               <h2 className="text-xl font-bold text-white">
-                 {editingCategory ? "Edit Category" : "New Category"}
-               </h2>
-               <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-1 hover:bg-white/10 rounded-lg text-neutral-400 hover:text-white transition-colors"
-               >
-                  <X className="w-5 h-5" />
-               </button>
+    </div>
+
+      {/* Form Sidebar */}
+      <div 
+        className={`fixed inset-y-0 right-0 z-[100] w-full max-w-lg bg-neutral-950 border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) transform ${
+          isModalOpen ? "translate-x-0" : "translate-x-full"
+        } flex flex-col h-screen`}
+      >
+        <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-tight">
+                {editingCategory ? "Update Category" : "New Category"}
+              </h2>
+              <p className="text-xs text-neutral-500 mt-1">
+                {editingCategory ? "Editing category details" : "Create a new product category"}
+              </p>
             </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="p-2 hover:bg-white/5 rounded-xl text-neutral-500 hover:text-white transition-all active:scale-95 border border-white/5"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text-secondary">Name</label>
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Category Name <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none"
+                  className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700"
                   placeholder="e.g. Hoodies"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text-secondary">Slug</label>
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">URL Slug <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   required
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none"
+                  className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700 font-mono"
                   placeholder="e.g. hoodies"
                 />
               </div>
               
-              {/* Image Upload */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text-secondary">Category Image</label>
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Category Media <span className="text-red-500">*</span></label>
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                  className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 group overflow-hidden ${
                     isDragOver 
                       ? "border-white/40 bg-white/5" 
-                      : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]"
+                      : "border-white/5 bg-neutral-900/30 hover:border-white/10 hover:bg-neutral-900/50"
                   }`}
                 >
                    <input
@@ -472,68 +455,95 @@ export default function AdminCategoriesPage() {
                      }}
                    />
                    
-                   {uploading ? (
-                      <div className="flex flex-col items-center gap-2">
-                         <Loader2 className="w-6 h-6 animate-spin text-white" />
-                         <span className="text-xs text-neutral-400">Uploading...</span>
-                      </div>
-                   ) : image ? (
-                      <div className="flex items-center gap-3">
-                         <div className="w-12 h-12 rounded-lg bg-neutral-800 relative overflow-hidden flex-shrink-0 border border-white/10">
-                            <Image src={image} alt="Preview" fill className="object-cover" />
+                   <div className="aspect-video flex items-center justify-center">
+                      {uploading ? (
+                         <div className="flex flex-col items-center gap-3">
+                            <Loader2 className="w-8 h-8 animate-spin text-white opacity-40" />
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Uploading...</span>
                          </div>
-                         <div className="flex-1 text-left min-w-0">
-                            <p className="text-xs font-medium text-white truncate max-w-[200px]">{image.split('/').pop()}</p>
-                            <p className="text-[10px] text-neutral-500">Click to replace</p>
+                      ) : image ? (
+                         <div className="absolute inset-0 p-3">
+                            <div className="relative w-full h-full rounded-xl overflow-hidden group/img shadow-2xl">
+                               <Image src={image} alt="Preview" fill className="object-cover transition-transform duration-700 group-hover/img:scale-110" />
+                               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                  <div className="text-center transform translate-y-2 group-hover/img:translate-y-0 transition-transform duration-300">
+                                     <ImageIcon className="w-6 h-6 text-white mx-auto mb-2 opacity-80" />
+                                     <p className="text-[10px] font-bold text-white uppercase tracking-widest">Replace Media</p>
+                                  </div>
+                               </div>
+                               <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setImage(""); }}
+                                  className="absolute top-3 right-3 p-1.5 bg-black/50 hover:bg-red-500 text-white rounded-lg transition-colors backdrop-blur-md z-10"
+                               >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
                          </div>
-                         <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setImage(""); }}
-                            className="p-1 hover:bg-white/10 rounded text-neutral-400 hover:text-white"
-                         >
-                            <X className="w-4 h-4" />
-                         </button>
-                      </div>
-                   ) : (
-                      <div className="flex flex-col items-center gap-2">
-                         <ImageIcon className="w-6 h-6 text-neutral-600" />
-                         <span className="text-xs text-neutral-400">Drop image here or click to upload</span>
-                      </div>
-                   )}
+                      ) : (
+                         <div className="text-center p-8">
+                            <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-white/10 transition-all duration-300 shadow-inner">
+                              <Upload className="w-6 h-6 text-neutral-600 group-hover:text-neutral-400 transition-colors" />
+                            </div>
+                            <p className="text-xs font-semibold text-neutral-400">Click or drop to upload</p>
+                            <p className="text-[9px] text-neutral-600 mt-2 uppercase tracking-widest font-bold">PNG, JPG, WEBP • MAX 5MB</p>
+                         </div>
+                      )}
+                   </div>
                 </div>
-                
-                {/* Fallback text input */}
-                <div className="flex items-center gap-2">
-                   <div className="h-px bg-white/5 flex-1" />
-                   <span className="text-[10px] text-neutral-600 uppercase font-bold">OR</span>
-                   <div className="h-px bg-white/5 flex-1" />
-                </div>
-                <input
-                  type="text"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-xs text-neutral-400 focus:border-white/30 outline-none"
-                  placeholder="Paste image URL..."
-                />
               </div>
+            </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="flex-1 bg-white text-black px-4 py-2 rounded-lg text-sm font-bold hover:bg-white/90 transition-colors disabled:opacity-50"
-                >
-                  {editingCategory ? "Update" : "Create"}
-                </button>
-              </div>
-            </form>
+            <div className="flex items-center gap-3 pt-6 border-t border-white/5">
+              <button
+                type="submit"
+                disabled={uploading || !name || !slug || !image}
+                className="flex-1 bg-white text-black px-6 py-3.5 rounded-xl text-sm font-bold hover:bg-neutral-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                {editingCategory ? "Save Changes" : "Create Category"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-3.5 rounded-xl text-sm font-medium text-neutral-500 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
+            onClick={() => setConfirmDeleteId(null)}
+          />
+          <div className="bg-neutral-900 border border-white/5 rounded-3xl w-full max-w-sm relative z-10 animate-in zoom-in-95 duration-300 shadow-2xl p-8 text-center border-t-red-500/20">
+            <div className="w-20 h-20 rounded-3xl bg-red-500/10 flex items-center justify-center mx-auto mb-6 border border-red-500/10 shadow-[0_0_40px_rgba(239,68,68,0.1)]">
+              <Trash2 className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-black text-white mb-2 tracking-tight uppercase">Delete?</h2>
+            <p className="text-neutral-500 text-sm mb-8 leading-relaxed font-medium px-4">
+              Are you sure you want to delete this category? This action is permanent and may affect linked products.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+                className="w-full bg-red-500 text-white px-6 py-4 rounded-2xl text-sm font-black hover:bg-red-400 transition-all active:scale-[0.98] shadow-lg shadow-red-500/20"
+              >
+                 DELETE CATEGORY
+              </button>
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="w-full px-6 py-4 rounded-2xl text-sm font-bold text-neutral-500 hover:text-white hover:bg-white/5 transition-all"
+              >
+                 CANCEL
+              </button>
+            </div>
           </div>
         </div>
       )}
