@@ -13,7 +13,7 @@ export interface ProductFromDB {
   is_best_seller: boolean;
   created_at: string;
   categories: string[];
-  qcImages: { folder: string; images: string[] }[];
+  qcImages: { folder: string; images: string[]; sort_order: number }[];
 }
 
 /** Shared product transformer */
@@ -160,10 +160,11 @@ export async function getProductById(
 
   const qcImages = (qcRes.data || []).map((group: any) => ({
     folder: group.folder_name,
+    sort_order: group.sort_order,
     images: (group.qc_images || [])
       .sort((a: any, b: any) => a.sort_order - b.sort_order)
       .map((img: any) => img.image_url),
-  }));
+  })).sort((a: any, b: any) => a.sort_order - b.sort_order);
 
   const result: ProductFromDB = {
     ...transformProduct(productRes.data),

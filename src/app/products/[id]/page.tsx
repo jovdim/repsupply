@@ -48,6 +48,7 @@ export default function ProductDetailPage({
   const [isFavorited, setIsFavorited] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [qcCardIndices, setQcCardIndices] = useState<Record<number, number>>({});
 
   // Fetch product data
@@ -99,6 +100,7 @@ export default function ProductDetailPage({
       });
     }
   };
+
 
   // Loading state
   if (loading) {
@@ -168,6 +170,11 @@ export default function ProductDetailPage({
     }
   };
 
+  // Filter out empty QC groups and sort by sort_order ascending
+  const activeQcImages = product.qcImages
+    .filter(group => group.images.length > 0)
+    .sort((a, b) => a.sort_order - b.sort_order);
+
   const toggleQcCardImage = (groupIdx: number, direction: "prev" | "next", total: number, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -180,11 +187,9 @@ export default function ProductDetailPage({
     });
   };
 
-  // Flatten QC images for lightbox navigation
-  const allQCImages = product.qcImages.flatMap(group => group.images);
-
-  const openLightbox = (imgSrc: string) => {
-    const idx = allQCImages.indexOf(imgSrc);
+  const openLightbox = (imgSrc: string, images: string[]) => {
+    const idx = images.indexOf(imgSrc);
+    setLightboxImages(images);
     setLightboxImage(imgSrc);
     setLightboxIndex(idx);
   };
@@ -192,10 +197,10 @@ export default function ProductDetailPage({
   const navigateLightbox = (dir: "prev" | "next") => {
     const newIndex =
       dir === "prev"
-        ? (lightboxIndex - 1 + allQCImages.length) % allQCImages.length
-        : (lightboxIndex + 1) % allQCImages.length;
+        ? (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length
+        : (lightboxIndex + 1) % lightboxImages.length;
     setLightboxIndex(newIndex);
-    setLightboxImage(allQCImages[newIndex]);
+    setLightboxImage(lightboxImages[newIndex]);
   };
 
   return (
@@ -307,25 +312,27 @@ export default function ProductDetailPage({
         </div>
 
         {/* QC Images Section */}
-        {product.qcImages.length > 0 && (
-          <div className="mb-16">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-                        QC Photos
+        <div className="mb-16">
+          <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                  <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+                      QC Photos
+                      {activeQcImages.length > 0 && (
                         <span className="text-sm font-normal text-text-muted bg-white/5 px-2 py-0.5 rounded-full">
-                            {product.qcImages.length} Galleries
+                            {activeQcImages.length} Albums
                         </span>
-                    </h2>
-                </div>
-            </div>
+                      )}
+                  </h2>
+              </div>
+          </div>
 
+          {activeQcImages.length > 0 ? (
             <div className="relative group -mx-4 px-4 md:mx-0 md:px-0">
               {/* Desktop Navigation Arrows */}
               <button
                 onClick={() => scrollQcGroups("left")}
                 className={`hidden lg:flex absolute -left-12 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/5 border border-white/10 items-center justify-center hover:bg-white/10 transition-all z-20 cursor-pointer ${showLeftFade ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                title="Previous gallery"
+                title="Previous album"
               >
                 <ChevronLeft className="w-4 h-4 text-white" />
               </button>
@@ -333,7 +340,7 @@ export default function ProductDetailPage({
               <button
                 onClick={() => scrollQcGroups("right")}
                 className={`hidden lg:flex absolute -right-12 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/5 border border-white/10 items-center justify-center hover:bg-white/10 transition-all z-20 cursor-pointer ${showRightFade ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                title="Next gallery"
+                title="Next album"
               >
                 <ChevronRight className="w-4 h-4 text-white" />
               </button>
@@ -347,7 +354,7 @@ export default function ProductDetailPage({
                 onScroll={checkScroll}
                 className="flex overflow-x-auto gap-4 scrollbar-hide pb-4"
               >
-                {product.qcImages.map((group, groupIdx) => {
+                {activeQcImages.map((group, groupIdx) => {
                   const currentIndex = qcCardIndices[groupIdx] || 0;
                   const currentImage = group.images[currentIndex];
                   const totalImages = group.images.length;
@@ -389,15 +396,15 @@ export default function ProductDetailPage({
                           
                           {/* Enlarge Button */}
                           <button 
-                              onClick={() => openLightbox(currentImage)}
+                              onClick={() => openLightbox(currentImage, group.images)}
                               className="absolute inset-0 z-0"
                           />
                       </div>
 
                       {/* Metadata Footer */}
-                      <div className="p-3 bg-bg-card">
+                      <div className="p-3 bg-bg-card border-t border-white/5">
                           <div className="flex justify-between items-center">
-                              <span className="text-sm font-medium text-white group-hover/card:text-indigo-400 transition-colors uppercase tracking-wider">{group.folder}</span>
+                              <span className="text-sm font-medium text-neutral-300 group-hover/card:text-white transition-colors uppercase tracking-wider">{group.folder}</span>
                           </div>
                       </div>
                     </div>
@@ -405,8 +412,14 @@ export default function ProductDetailPage({
                 })}
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="bg-bg-card border border-white/5 border-dashed rounded-2xl py-12 text-center">
+              <ImageIcon className="w-8 h-8 text-neutral-600 mx-auto mb-3" />
+              <p className="text-white font-medium mb-1">No QC Photos available yet</p>
+              <p className="text-text-secondary text-sm">Photos will appear here once they are verified.</p>
+            </div>
+          )}
+        </div>
 
         {/* You Might Also Like */}
         {recommended.length > 0 && (
@@ -460,7 +473,7 @@ export default function ProductDetailPage({
           </button>
 
           {/* Nav arrows */}
-          {allQCImages.length > 1 && (
+          {lightboxImages.length > 1 && (
             <>
               <button
                 onClick={(e) => {
@@ -498,7 +511,7 @@ export default function ProductDetailPage({
 
           {/* Counter */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-sm">
-            {lightboxIndex + 1} / {allQCImages.length}
+            {lightboxIndex + 1} / {lightboxImages.length}
           </div>
         </div>
       )}

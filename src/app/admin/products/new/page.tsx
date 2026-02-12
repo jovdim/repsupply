@@ -192,15 +192,6 @@ export default function NewProductPage() {
       }
     }
 
-    // Create Default QC Group
-    if (product) {
-       await supabase.from("qc_groups").insert({
-          product_id: product.id,
-          folder_name: "Group 1",
-          sort_order: 0
-       });
-    }
-
     router.push("/admin/products");
     router.refresh();
   }

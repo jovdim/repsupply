@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { invalidateProductCache } from "@/lib/supabase/products";
-import { ArrowLeft, Plus, X, Upload, Trash2, Folder, Image as ImageIcon, Save, Check, FileUp } from "lucide-react";
+import { ArrowLeft, Plus, X, Upload, Trash2, Folder, Image as ImageIcon, Save, Check, FileUp, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -43,9 +43,6 @@ export default function ManageQcImagesPage() {
   const [isGlobalDragOver, setIsGlobalDragOver] = useState(false);
   const [isCreatingGroupUpload, setIsCreatingGroupUpload] = useState(false);
   
-  // New group state
-  const [isAddingGroup, setIsAddingGroup] = useState(false);
-  const [newGroupName, setNewGroupName] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,7 +67,7 @@ export default function ManageQcImagesPage() {
         }
 
         if (files.length > 0) {
-           handleCreateGroupAndUpload(files, `Pasted Batch ${new Date().toLocaleTimeString()}`);
+           handleCreateGroupAndUpload(files, `Album ${groups.length + 1}`);
         }
      };
 
@@ -127,7 +124,6 @@ export default function ManageQcImagesPage() {
     }
     setProduct(productData);
 
-    // Fetch QC groups and images
     const { data: groupsData, error: groupsError } = await supabase
       .from("qc_groups")
       .select(`
@@ -141,7 +137,7 @@ export default function ManageQcImagesPage() {
         )
       `)
       .eq("product_id", id)
-      .order("sort_order", { ascending: true });
+      .order("sort_order", { ascending: false });
 
     if (groupsError) {
       console.error("Error fetching groups:", groupsError);
@@ -157,110 +153,163 @@ export default function ManageQcImagesPage() {
   }
 
   async function handleAddGroup() {
-    if (!newGroupName.trim()) return;
+    // Prevent adding new group if the most recent one is empty
+    const emptyGroup = groups.find(g => g.qc_images.length === 0);
+    if (emptyGroup) {
+      alert(`Please upload photos to "${emptyGroup.folder_name}" before creating a new album.`);
+      return;
+    }
+
+    const nextAlbumName = `Album ${groups.length + 1}`;
 
     const { error } = await supabase
       .from("qc_groups")
       .insert({
         product_id: parseInt(id),
-        folder_name: newGroupName,
+        folder_name: nextAlbumName,
         sort_order: groups.length,
       });
 
     if (error) {
-      alert("Error adding group: " + error.message);
+      alert("Error adding album: " + error.message);
     } else {
-      setNewGroupName("");
-      setIsAddingGroup(false);
       invalidateProductCache();
       fetchData();
     }
   }
   
   // Creates a new group and uploads files to it immediately
-  async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: string) {
-     if (!files || (files instanceof FileList && files.length === 0) || (Array.isArray(files) && files.length === 0)) return;
-     
-     setIsCreatingGroupUpload(true);
-     
-     // 1. Create Group
-     const { data: groupData, error: groupError } = await supabase
-        .from("qc_groups")
-        .insert({
-           product_id: parseInt(id),
-           folder_name: groupName,
-           sort_order: groups.length,
-        })
-        .select()
-        .single();
-        
-     if (groupError || !groupData) {
-        alert("Error creating group for upload: " + groupError?.message);
-        setIsCreatingGroupUpload(false);
-        return;
-     }
-     
-     const newGroupId = groupData.id;
-     
-     // 2. Upload Images
-     // Re-using upload logic but customized for this flow to avoid state race conditions with group list
-     const fileArray = files instanceof FileList ? Array.from(files) : files;
-     
-     const uploads = fileArray.map(async (file, index) => {
-        if (!file.type.startsWith("image/")) return null;
+async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: string) {
+   if (!files || (files instanceof FileList && files.length === 0) || (Array.isArray(files) && files.length === 0)) return;
+   
+   // 1. Check if an empty album exists to redirect to
+   const emptyGroup = groups.find(g => g.qc_images.length === 0);
+   if (emptyGroup) {
+      handleUploadImages(files, emptyGroup.id);
+      return;
+   }
 
-        const ext = file.name.split(".").pop() || "png";
-        const fileName = `qc-${id}-${newGroupId}-${Date.now()}-${index}.${ext}`;
+   setIsCreatingGroupUpload(true);
+   
+   // 2. Create Group
+   const { data: groupData, error: groupError } = await supabase
+      .from("qc_groups")
+      .insert({
+         product_id: parseInt(id),
+         folder_name: groupName,
+         sort_order: groups.length,
+      })
+      .select()
+      .single();
+      
+   if (groupError || !groupData) {
+      alert("Error creating group for upload: " + groupError?.message);
+      setIsCreatingGroupUpload(false);
+      return;
+   }
+   
+   const newGroupId = groupData.id;
+   
+   // 3. Upload Images
+   // Re-using upload logic but customized for this flow to avoid state race conditions with group list
+   const fileArray = files instanceof FileList ? Array.from(files) : files;
+   
+   const uploads = fileArray.map(async (file, index) => {
+      if (!file.type.startsWith("image/")) return null;
 
-        const { error: uploadError } = await supabase.storage
-           .from("product-images")
-           .upload(fileName, file);
+      const ext = file.name.split(".").pop() || "png";
+      const fileName = `qc-${id}-${newGroupId}-${Date.now()}-${index}.${ext}`;
 
-        if (uploadError) return null;
+      const { error: uploadError } = await supabase.storage
+         .from("product-images")
+         .upload(fileName, file);
 
-        const { data: { publicUrl } } = supabase.storage
-           .from("product-images")
-           .getPublicUrl(fileName);
+      if (uploadError) return null;
 
-        return {
-           qc_group_id: newGroupId,
-           image_url: publicUrl,
-           sort_order: index
-        };
-     });
+      const { data: { publicUrl } } = supabase.storage
+         .from("product-images")
+         .getPublicUrl(fileName);
 
-     const results = await Promise.all(uploads);
-     const validUploads = results.filter(r => r !== null) as any[];
+      return {
+         qc_group_id: newGroupId,
+         image_url: publicUrl,
+         sort_order: index
+      };
+   });
 
-     if (validUploads.length > 0) {
-        await supabase.from("qc_images").insert(validUploads);
-     }
-     
-     setIsCreatingGroupUpload(false);
-     invalidateProductCache();
-     fetchData();
-  }
+   const results = await Promise.all(uploads);
+   const validUploads = results.filter(r => r !== null) as any[];
+
+   if (validUploads.length > 0) {
+      await supabase.from("qc_images").insert(validUploads);
+   }
+   
+   setIsCreatingGroupUpload(false);
+   invalidateProductCache();
+   fetchData();
+}
 
   async function handleDeleteGroup(groupId: number) {
-    if (!confirm("Are you sure? This will delete all images in this group.")) return;
+    if (!confirm("Are you sure? This will delete all images in this album. Other albums will be re-numbered automatically.")) return;
+
+    // 1. Get all image URLs for this group to delete from storage
+    const group = groups.find(g => g.id === groupId);
+    const imageUrls = group?.qc_images.map(img => img.image_url) || [];
+
+    // 2. Delete from Storage
+    if (imageUrls.length > 0) {
+      const fileNames = imageUrls.map(url => url.split("/").pop()).filter(Boolean) as string[];
+      if (fileNames.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from("product-images")
+          .remove(fileNames);
+        if (storageError) console.error("Error deleting files from storage:", storageError);
+      }
+    }
 
     const { error } = await supabase.from("qc_groups").delete().eq("id", groupId);
     if (error) {
-       alert("Error deleting group: " + error.message);
+       alert("Error deleting album: " + error.message);
     } else {
-       setGroups(groups.filter(g => g.id !== groupId));
+       // Re-fetch and re-order names
+       const { data: remainingGroups, error: fetchError } = await supabase
+          .from("qc_groups")
+          .select("id, folder_name, sort_order")
+          .eq("product_id", id)
+          .order("sort_order", { ascending: true });
+
+       if (!fetchError && remainingGroups) {
+          // Update names and sort_orders to be sequential
+          const updates = remainingGroups.map((g, index) => ({
+             id: g.id,
+             product_id: parseInt(id),
+             folder_name: `Album ${index + 1}`,
+             sort_order: index
+          }));
+
+          if (updates.length > 0) {
+             const { error: updateError } = await supabase
+                .from("qc_groups")
+                .upsert(updates);
+             if (updateError) console.error("Error re-ordering albums:", updateError);
+          }
+       }
+
        invalidateProductCache();
+       fetchData();
     }
   }
 
-  async function handleUploadImages(files: FileList | null, groupId: number) {
-    if (!files || files.length === 0) return;
+  async function handleUploadImages(files: FileList | File[] | null, groupId: number) {
+    if (!files || (files instanceof FileList && files.length === 0) || (Array.isArray(files) && files.length === 0)) return;
     
     setUploadingGroupId(groupId);
     const group = groups.find(g => g.id === groupId);
     const currentCount = group?.qc_images.length || 0;
 
-    const uploads = Array.from(files).map(async (file, index) => {
+    const fileArray = files instanceof FileList ? Array.from(files) : files;
+
+    const uploads = fileArray.map(async (file, index) => {
        if (!file.type.startsWith("image/")) return null;
 
        const ext = file.name.split(".").pop() || "png";
@@ -301,7 +350,16 @@ export default function ManageQcImagesPage() {
     setUploadingGroupId(null);
   }
 
-  async function handleDeleteImage(imageId: number, groupId: number) {
+  async function handleDeleteImage(imageId: number, groupId: number, imageUrl: string) {
+     // 1. Delete from Storage
+     const fileName = imageUrl.split("/").pop();
+     if (fileName) {
+        const { error: storageError } = await supabase.storage
+           .from("product-images")
+           .remove([fileName]);
+        if (storageError) console.error("Error deleting file from storage:", storageError);
+     }
+
      const { error } = await supabase.from("qc_images").delete().eq("id", imageId);
      if (error) {
         alert("Error deleting image: " + error.message);
@@ -313,6 +371,51 @@ export default function ManageQcImagesPage() {
         invalidateProductCache();
      }
   }
+
+  // Helper to recursively scan for files in dropped entries
+  const scanFilesRecursively = async (items: DataTransferItemList): Promise<File[]> => {
+    const files: File[] = [];
+    
+    const scanEntry = async (entry: any) => {
+      if (entry.isFile) {
+        const file = await new Promise<File>((resolve, reject) => {
+          entry.file(resolve, reject);
+        });
+        if (file.type.startsWith("image/")) {
+          files.push(file);
+        }
+      } else if (entry.isDirectory) {
+        const directoryReader = entry.createReader();
+        
+        const readAllEntries = async () => {
+          const entries: any[] = await new Promise((resolve, reject) => {
+            directoryReader.readEntries(resolve, reject);
+          });
+          
+          if (entries.length > 0) {
+            for (const entry of entries) {
+              await scanEntry(entry);
+            }
+            await readAllEntries();
+          }
+        };
+        
+        await readAllEntries();
+      }
+    };
+
+    const entries: any[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry();
+      if (entry) entries.push(entry);
+    }
+
+    for (const entry of entries) {
+      await scanEntry(entry);
+    }
+    
+    return files;
+  };
 
   // Drag & drop handlers
   const handleDragOver = useCallback((e: React.DragEvent, groupId: number) => {
@@ -326,23 +429,25 @@ export default function ManageQcImagesPage() {
     setIsDragOverGroupId(null);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent, groupId: number) => {
+  const handleDrop = useCallback(async (e: React.DragEvent, groupId: number) => {
     e.preventDefault();
     e.stopPropagation(); // Stop bubbling to global
     setIsDragOverGroupId(null);
-    handleUploadImages(e.dataTransfer.files, groupId);
+    
+    const files = await scanFilesRecursively(e.dataTransfer.items);
+    if (files.length > 0) {
+       handleUploadImages(files, groupId);
+    }
   }, [groups]); // eslint-disable-line react-hooks/exhaustive-deps
   
-  // Global Drop (Create new group)
+  // Global Drop (Create new album)
   const handleGlobalDrop = async (e: React.DragEvent) => {
      e.preventDefault();
      setIsGlobalDragOver(false);
      
-     const files = e.dataTransfer.files;
+     const files = await scanFilesRecursively(e.dataTransfer.items);
      if (files.length > 0) {
-        // Try to guess a name if possible, or use generic
-        // e.dataTransfer.items might have webkitGetAsEntry but let's stick to simple first
-        await handleCreateGroupAndUpload(files, `Dropped Batch ${new Date().toLocaleTimeString()}`);
+        await handleCreateGroupAndUpload(files, `Album ${groups.length + 1}`);
      }
   };
 
@@ -367,19 +472,31 @@ export default function ManageQcImagesPage() {
          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-8 pointer-events-none">
             <div className="bg-white/10 border-2 border-dashed border-white/40 rounded-3xl p-12 text-center max-w-lg w-full animate-scale-in">
                <FileUp className="w-16 h-16 text-white mx-auto mb-4" />
-               <h3 className="text-2xl font-bold text-white mb-2">Drop files to Create New Group</h3>
-               <p className="text-neutral-300">Images will be added to a new folder automatically.</p>
+               <h3 className="text-2xl font-bold text-white mb-2">Drop files to Create New Album</h3>
+               <p className="text-neutral-300">Images will be added to a new album automatically.</p>
             </div>
          </div>
       )}
       
-      {/* Uploading Overlay */}
-      {isCreatingGroupUpload && (
-         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center pointer-events-none">
-            <div className="bg-neutral-900 border border-white/10 rounded-2xl p-8 text-center shadow-2xl animate-fade-in">
-               <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
-               <h3 className="text-lg font-bold text-white mb-1">Creating Group & Uploading...</h3>
-               <p className="text-neutral-500 text-sm">Please wait while we process your images.</p>
+      {/* Non-blocking Uploading Indicator */}
+      {(isCreatingGroupUpload || uploadingGroupId) && (
+         <div className="fixed bottom-6 right-6 z-[60] animate-slide-up">
+            <div className="bg-neutral-900 border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 min-w-[280px]">
+               <div className="relative w-10 h-10 flex-shrink-0">
+                  <div className="absolute inset-0 border-2 border-white/10 rounded-full" />
+                  <div className="absolute inset-0 border-2 border-t-white rounded-full animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <FileUp className="w-4 h-4 text-white" />
+                  </div>
+               </div>
+               <div>
+                  <h3 className="text-sm font-bold text-white">
+                    {isCreatingGroupUpload ? "Creating Album..." : "Uploading Photos..."}
+                  </h3>
+                  <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold">
+                    {isCreatingGroupUpload ? "Preparing images" : "In Progress"}
+                  </p>
+               </div>
             </div>
          </div>
       )}
@@ -400,73 +517,54 @@ export default function ManageQcImagesPage() {
                   </div>
                   <div>
                      <h1 className="text-2xl font-bold text-white">QC Photos</h1>
-                     <p className="text-text-secondary text-sm">Managing photos for {product.name}</p>
+                     <p className="text-text-secondary text-sm flex items-center gap-1">
+                        Managing albums for 
+                        <Link 
+                           href={`/admin/products/${id}`} 
+                           className="text-white hover:underline underline-offset-4 transition-all inline-flex items-center gap-1 group/link"
+                        >
+                           {product.name}
+                           <ExternalLink className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                        </Link>
+                     </p>
                   </div>
                </div>
             </div>
-            <div className="flex gap-2">
-               <button
-                  onClick={() => setIsAddingGroup(true)}
-                  className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl font-bold hover:bg-white/90 transition-all active:scale-95 text-sm"
-               >
-                  <Plus className="w-4 h-4" />
-                  Add Group
-               </button>
-            </div>
          </div>
 
-         {/* Paste Tip */}
-         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
-             <div className="p-1.5 bg-blue-500/20 rounded-lg">
-                <FileUp className="w-4 h-4 text-blue-400" />
+         {/* Tip */}
+         <div className="bg-neutral-900/40 border border-white/5 rounded-2xl p-4 backdrop-blur-sm flex items-center justify-between gap-3">
+             <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-white/5 rounded-lg text-neutral-400">
+                   <FileUp className="w-4 h-4" />
+                </div>
+                <p className="text-sm text-neutral-300">
+                   <span className="font-bold text-white">Tip:</span> Drag & drop a folder or images anywhere on the page to create a new album instantly. You can also paste images (Ctrl+V).
+                 </p>
              </div>
-             <p className="text-sm text-blue-200">
-                <span className="font-bold text-blue-100">Pro Tip:</span> Drag & drop a folder or images anywhere on the page to create a new group instantly. You can also paste images (Ctrl+V).
-             </p>
+             <div className="flex gap-2">
+                <button
+                   onClick={() => handleAddGroup()}
+                   className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-neutral-200 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95"
+                >
+                   <Plus className="w-4 h-4" />
+                   Add Album
+                </button>
+             </div>
          </div>
-
-         {/* New Group Input */}
-         {isAddingGroup && (
-            <div className="bg-neutral-900 border border-white/10 rounded-xl p-4 animate-scale-in max-w-md">
-               <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 block">New Folder Name</label>
-               <div className="flex gap-2">
-                  <input
-                     type="text"
-                     value={newGroupName}
-                     onChange={(e) => setNewGroupName(e.target.value)}
-                     placeholder="e.g. Batch 2"
-                     className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-white/30 outline-none text-sm"
-                     autoFocus
-                  />
-                  <button
-                     onClick={handleAddGroup}
-                     disabled={!newGroupName.trim()}
-                     className="px-3 py-2 bg-white text-black rounded-lg font-bold text-sm hover:bg-white/90 disabled:opacity-50"
-                  >
-                     Create
-                  </button>
-                  <button
-                     onClick={() => setIsAddingGroup(false)}
-                     className="px-3 py-2 text-neutral-400 hover:text-white hover:bg-white/5 rounded-lg"
-                  >
-                     <X className="w-4 h-4" />
-                  </button>
-               </div>
-            </div>
-         )}
 
          {/* Groups List */}
          <div className="space-y-6">
             {groups.length === 0 ? (
                <div className="text-center py-12 bg-neutral-900/40 border border-white/5 rounded-2xl border-dashed">
                   <Folder className="w-8 h-8 text-neutral-600 mx-auto mb-3" />
-                  <p className="text-neutral-400 text-sm font-medium">No QC groups yet.</p>
+                  <p className="text-neutral-400 text-sm font-medium">No QC albums yet.</p>
                   <p className="text-neutral-600 text-xs mt-2">Drag and drop images here to create one automatically.</p>
                   <button 
-                     onClick={() => setIsAddingGroup(true)}
+                     onClick={() => handleAddGroup()}
                      className="mt-4 text-xs text-white underline underline-offset-4 hover:text-neutral-300"
                   >
-                     Create manually
+                     Create Album
                   </button>
                </div>
             ) : (
@@ -538,12 +636,12 @@ export default function ManageQcImagesPage() {
                                     >
                                        <ImageIcon className="w-4 h-4" />
                                     </a>
-                                    <button
-                                       onClick={() => handleDeleteImage(img.id, group.id)}
-                                       className="p-1.5 bg-red-500/20 hover:bg-red-500/40 rounded-lg text-red-200 transition-colors"
-                                    >
-                                       <Trash2 className="w-4 h-4" />
-                                    </button>
+                                     <button
+                                        onClick={() => handleDeleteImage(img.id, group.id, img.image_url)}
+                                        className="p-1.5 bg-red-500/20 hover:bg-red-500/40 rounded-lg text-red-200 transition-colors"
+                                     >
+                                        <Trash2 className="w-4 h-4" />
+                                     </button>
                                  </div>
                               </div>
                            ))}

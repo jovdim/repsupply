@@ -10,7 +10,7 @@ interface Product {
   id: number;
   name: string;
   image: string;
-  qc_groups: { count: number }[];
+  qc_groups: { count: number }[]; // Keeping property names as from DB but changing UI
 }
 
 export default function AdminQcImagesPage() {
@@ -106,7 +106,7 @@ export default function AdminQcImagesPage() {
               <thead className="bg-white/[0.02] text-neutral-500 uppercase text-[10px] font-bold tracking-widest border-b border-white/5">
                 <tr>
                   <th className="px-6 py-4">Product</th>
-                  <th className="px-6 py-4">QC Groups</th>
+                  <th className="px-6 py-4">QC Albums</th>
                   <th className="px-6 py-4 text-right">Action</th>
                 </tr>
               </thead>
@@ -122,10 +122,13 @@ export default function AdminQcImagesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="flex items-center gap-1.5 text-neutral-400 text-sm">
-                        <Folder className="w-3.5 h-3.5" />
-                        {product.qc_groups[0]?.count || 0} groups
-                      </span>
+                      <Link 
+                        href={`/admin/qc-images/${product.id}`}
+                        className="flex items-center gap-1.5 text-neutral-400 text-sm hover:text-white transition-colors group/count"
+                      >
+                        <Folder className="w-3.5 h-3.5 group-hover/count:scale-110 transition-transform" />
+                        {product.qc_groups[0]?.count || 0} albums
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <Link
