@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { invalidateProductCache } from "@/lib/supabase/products";
 import { ArrowLeft, Plus, X, Upload, Trash2, Folder, Image as ImageIcon, Save, Check, FileUp } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -171,6 +172,7 @@ export default function ManageQcImagesPage() {
     } else {
       setNewGroupName("");
       setIsAddingGroup(false);
+      invalidateProductCache();
       fetchData();
     }
   }
@@ -235,6 +237,7 @@ export default function ManageQcImagesPage() {
      }
      
      setIsCreatingGroupUpload(false);
+     invalidateProductCache();
      fetchData();
   }
 
@@ -246,6 +249,7 @@ export default function ManageQcImagesPage() {
        alert("Error deleting group: " + error.message);
     } else {
        setGroups(groups.filter(g => g.id !== groupId));
+       invalidateProductCache();
     }
   }
 
@@ -288,7 +292,10 @@ export default function ManageQcImagesPage() {
     if (validUploads.length > 0) {
        const { error } = await supabase.from("qc_images").insert(validUploads);
        if (error) alert("Error saving images to DB: " + error.message);
-       else fetchData();
+       else {
+          invalidateProductCache();
+          fetchData();
+       }
     }
 
     setUploadingGroupId(null);
@@ -303,6 +310,7 @@ export default function ManageQcImagesPage() {
            if (g.id !== groupId) return g;
            return { ...g, qc_images: g.qc_images.filter(img => img.id !== imageId) };
         }));
+        invalidateProductCache();
      }
   }
 

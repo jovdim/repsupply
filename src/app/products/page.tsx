@@ -11,8 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
-  Sparkles,
   Flame,
+  BrickWall
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,7 +22,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cacheGet, cacheSet, TTL } from "@/lib/cache";
 import { useSearchParams, useRouter } from "next/navigation";
 
-type FilterType = "all" | "featured" | "new";
+type FilterType = "all" | "featured" | "best_seller";
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -46,7 +46,7 @@ function ProductsContent() {
     const catParam = searchParams.get("category");
     const filterParam = searchParams.get("filter") as FilterType | null;
     if (catParam) setSelectedCategory(catParam);
-    if (filterParam && ["all", "featured", "new"].includes(filterParam)) {
+    if (filterParam && ["all", "featured", "best_seller"].includes(filterParam)) {
       setActiveFilter(filterParam);
     }
   }, [searchParams]);
@@ -98,11 +98,8 @@ function ProductsContent() {
     // Apply filter tab
     if (activeFilter === "featured") {
       filtered = filtered.filter((p) => p.is_featured);
-    } else if (activeFilter === "new") {
-      filtered = [...filtered].sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+    } else if (activeFilter === "best_seller") {
+      filtered = filtered.filter((p) => p.is_best_seller);
     }
 
     // Apply category filter
@@ -122,6 +119,20 @@ function ProductsContent() {
 
     setProducts(filtered);
   }, [searchQuery, selectedCategory, activeFilter, allProducts]);
+
+  // Apply grid limits for Featured/Best Sellers
+  const displayedProducts = (activeFilter === "featured" || activeFilter === "best_seller")
+    ? products.slice(0, isMobile ? 9 : 15)
+    : products;
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("All");
+    setActiveFilter("all");
+    router.replace("/products", { scroll: false });
+  };
+
+  const hasActiveFilters = searchQuery || selectedCategory !== "All" || activeFilter !== "all";
 
   const handleFilterChange = (filter: FilterType) => {
     setActiveFilter(filter);
@@ -158,9 +169,9 @@ function ProductsContent() {
     mobileGridCols === 2 ? "grid-cols-2" : "grid-cols-3";
 
   const filters: { key: FilterType; label: string; icon: any }[] = [
-    { key: "all", label: "All", icon: LayoutGrid },
+    { key: "all", label: "All", icon: BrickWall },
     { key: "featured", label: "Featured", icon: Star },
-    { key: "new", label: "New Arrivals", icon: Sparkles },
+    { key: "best_seller", label: "Best Sellers", icon: Flame },
   ];
 
   return (
@@ -377,7 +388,7 @@ function ProductsContent() {
 
               {/* Results count */}
               <div className="mt-3 flex items-center justify-between text-xs text-text-muted px-1">
-                <span>{products.length} products</span>
+                <span>{displayedProducts.length} products</span>
                 <div className="flex items-center gap-2">
                   {activeFilter !== "all" && (
                     <span className="bg-white/5 px-2 py-0.5 rounded-full">
@@ -388,6 +399,14 @@ function ProductsContent() {
                     <span>
                       Searching: &quot;{searchQuery}&quot;
                     </span>
+                  )}
+                  {hasActiveFilters && (
+                    <button 
+                       onClick={handleClearFilters}
+                       className="text-white hover:text-neutral-300 transition-colors ml-2 underline underline-offset-4"
+                    >
+                       Clear
+                    </button>
                   )}
                 </div>
               </div>
@@ -400,8 +419,13 @@ function ProductsContent() {
       <div className="max-w-[1600px] mx-auto">
         <div className="px-4 md:px-12 lg:px-20 xl:px-24">
             {/* Results count - mobile */}
-            <div className="md:hidden text-xs text-text-muted px-2 py-2">
-            {products.length} products
+            <div className="md:hidden flex items-center justify-between px-2 py-2">
+               <span className="text-xs text-text-muted">{displayedProducts.length} products</span>
+               {hasActiveFilters && (
+                  <button onClick={handleClearFilters} className="text-xs text-white underline underline-offset-4">
+                     Clear
+                  </button>
+               )}
             </div>
 
             {/* Loading state */}
@@ -421,7 +445,7 @@ function ProductsContent() {
             <div
                 className={`grid ${mobileGridClass} sm:grid-cols-2 ${desktopGridClass} gap-2 md:gap-4 animate-fade-in`}
             >
-                {products.map((product) => (
+                {displayedProducts.map((product) => (
                 <Link
                     key={product.id}
                     href={`/products/${product.id}`}
@@ -460,7 +484,7 @@ function ProductsContent() {
             </div>
             ) : (
             <div className="space-y-2 animate-fade-in w-full">
-                {products.map((product) => (
+                {displayedProducts.map((product) => (
                 <Link
                     key={product.id}
                     href={`/products/${product.id}`}

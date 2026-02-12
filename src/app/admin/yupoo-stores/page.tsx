@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { invalidateYupooCache } from "@/lib/supabase/yupoo";
 import { Plus, Search, Edit, Trash2, ExternalLink, X, Image as ImageIcon, Loader2, Save, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -143,6 +144,7 @@ export default function AdminYupooStoresPage() {
     }
 
     setIsModalOpen(false);
+    invalidateYupooCache();
     fetchStores();
   }
 
@@ -153,6 +155,7 @@ export default function AdminYupooStoresPage() {
     } else {
        setStores(prev => prev.filter(s => s.id !== id));
        setConfirmDeleteId(null);
+       invalidateYupooCache();
     }
   }
 

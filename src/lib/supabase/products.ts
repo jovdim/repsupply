@@ -10,6 +10,7 @@ export interface ProductFromDB {
   description: string | null;
   badge: string | null;
   is_featured: boolean;
+  is_best_seller: boolean;
   created_at: string;
   categories: string[];
   qcImages: { folder: string; images: string[] }[];
@@ -26,6 +27,7 @@ function transformProduct(p: any): ProductFromDB {
     description: p.description,
     badge: p.badge,
     is_featured: p.is_featured,
+    is_best_seller: p.is_best_seller || false,
     created_at: p.created_at,
     categories:
       p.product_categories

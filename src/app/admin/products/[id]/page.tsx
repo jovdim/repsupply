@@ -29,8 +29,8 @@ export default function EditProductPage() {
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
   const [description, setDescription] = useState("");
-
   const [isFeatured, setIsFeatured] = useState(false);
+  const [isBestSeller, setIsBestSeller] = useState(false);
   const [qcGroupCount, setQcGroupCount] = useState(0);
   
   // Multi-Category State
@@ -81,6 +81,7 @@ export default function EditProductPage() {
         setDescription(product.description || "");
 
         setIsFeatured(product.is_featured);
+        setIsBestSeller(product.is_best_seller || false);
         setQcGroupCount(product.qc_groups?.[0]?.count || 0);
         
         if (product.product_categories && product.product_categories.length > 0) {
@@ -219,6 +220,7 @@ export default function EditProductPage() {
         link,
         description,
         is_featured: isFeatured,
+        is_best_seller: isBestSeller,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
@@ -415,6 +417,25 @@ export default function EditProductPage() {
               </button>
               <label className="text-sm font-medium text-white cursor-pointer select-none" onClick={() => setIsFeatured(!isFeatured)}>
                  Feature this product on the homepage
+              </label>
+           </div>
+
+           <div className="flex items-center gap-3 p-4 bg-black/20 rounded-lg border border-white/5">
+              <button
+                type="button"
+                onClick={() => setIsBestSeller(!isBestSeller)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${
+                  isBestSeller ? "bg-white" : "bg-neutral-700"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full transition-transform duration-200 ${
+                    isBestSeller ? "translate-x-6 bg-black" : "translate-x-1 bg-neutral-400"
+                  }`}
+                />
+              </button>
+              <label className="text-sm font-medium text-white cursor-pointer select-none" onClick={() => setIsBestSeller(!isBestSeller)}>
+                 Mark as Best Seller
               </label>
            </div>
         </div>

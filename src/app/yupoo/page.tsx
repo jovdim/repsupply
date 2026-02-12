@@ -3,14 +3,9 @@
 import { Search, ExternalLink, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { getYupooStores, type YupooStore } from "@/lib/supabase/yupoo";
 
-interface YupooStore {
-  id: number;
-  name: string;
-  image: string;
-  link: string;
-}
+
 
 export default function YupooPage() {
   const [stores, setStores] = useState<YupooStore[]>([]);
@@ -19,9 +14,8 @@ export default function YupooPage() {
 
   useEffect(() => {
     async function fetchStores() {
-      const supabase = createClient();
-      const { data } = await supabase.from("yupoo_stores").select("*").order("name");
-      if (data) setStores(data);
+      const data = await getYupooStores();
+      setStores(data);
       setLoading(false);
     }
     fetchStores();
