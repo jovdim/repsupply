@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { cacheGet, cacheSet, cacheInvalidate, TTL } from "@/lib/cache";
+import { smartFetch, cacheInvalidatePrefix, TTL } from "@/lib/cache";
 
 export interface YupooStore {
   id: number;
@@ -15,27 +15,25 @@ const STORE_CACHE_KEY = "yupoo:stores";
  * Results are cached for 5 minutes.
  */
 export async function getYupooStores(): Promise<YupooStore[]> {
-  const cached = cacheGet<YupooStore[]>(STORE_CACHE_KEY);
-  if (cached) return cached;
+  return smartFetch<YupooStore[]>(STORE_CACHE_KEY, async () => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("yupoo_stores")
+      .select("*")
+      .order("name");
 
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("yupoo_stores")
-    .select("*")
-    .order("name");
+    if (error || !data) {
+      console.error("Error fetching Yupoo stores:", error);
+      return [];
+    }
 
-  if (error || !data) {
-    console.error("Error fetching Yupoo stores:", error);
-    return [];
-  }
-
-  cacheSet(STORE_CACHE_KEY, data, TTL.MEDIUM);
-  return data;
+    return data;
+  }, TTL.MEDIUM);
 }
 
 /**
  * Invalidate Yupoo stores cache.
  */
 export function invalidateYupooCache(): void {
-  cacheInvalidate(STORE_CACHE_KEY);
+  cacheInvalidatePrefix(STORE_CACHE_KEY);
 }

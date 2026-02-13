@@ -14,15 +14,12 @@ import { Button } from "@/components/ui/Button";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { getFeaturedProducts, type ProductFromDB } from "@/lib/supabase/products";
+import { useRouter } from "next/navigation";
+import { getFeaturedProducts, getProducts, type ProductFromDB } from "@/lib/supabase/products";
+import { getCategories, type CategoryFromDB } from "@/lib/supabase/categories";
 import { createClient } from "@/lib/supabase/client";
-
-interface CategoryFromDB {
-  id: number;
-  name: string;
-  slug: string;
-  image: string;
-}
+import { useImagePreload } from "@/hooks/useImagePreload";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const agents = [
   { name: "AllChinaBuy", logo: "/agent-images/allchinabuy.webp" },
@@ -38,26 +35,55 @@ const agents = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
   const [featuredProducts, setFeaturedProducts] = useState<ProductFromDB[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [categories, setCategories] = useState<CategoryFromDB[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<ProductFromDB[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Fetch search results when debounced query changes
+  useEffect(() => {
+    async function fetchSearch() {
+      if (debouncedSearch.trim()) {
+        const results = await getProducts(undefined, debouncedSearch);
+        setSearchResults(results.slice(0, 8)); // Limit to 8
+      } else {
+        setSearchResults([]);
+      }
+    }
+    fetchSearch();
+  }, [debouncedSearch]);
+
+  // Preload featured products and category images
+  useImagePreload([
+    ...featuredProducts.map(p => p.image),
+    ...categories.map(c => c.image).filter(Boolean) as string[]
+  ]);
+
+  const handleSearch = (query?: string) => {
+    const q = (query ?? searchQuery).trim();
+    if (q) {
+      router.push(`/products?search=${encodeURIComponent(q)}`);
+    }
+  };
 
   useEffect(() => {
     async function fetchData() {
-      const supabase = createClient();
-      const [products, { data: catData }] = await Promise.all([
-        getFeaturedProducts(12),
-        supabase
-          .from("categories")
-          .select("id, name, slug, image")
-          .eq("is_featured", true)
-          .order("name"),
-      ]);
+      const allCats = await getCategories();
+      
+      // Only show featured categories on the homepage
+      const featuredCats = allCats.filter(cat => cat.is_featured);
+
+      const products = await getFeaturedProducts(10);
       setFeaturedProducts(products);
       setLoadingProducts(false);
-      setCategories(catData || []);
+      setCategories(featuredCats);
       setLoadingCategories(false);
     }
     fetchData();
@@ -119,16 +145,123 @@ export default function Home() {
       <div className="px-4">
         <div className="max-w-2xl mx-auto">
           <div className="relative">
-            <div className="relative flex items-center bg-bg-card border border-white/10 rounded-2xl shadow-lg">
+            <div className="relative flex items-center bg-bg-card border border-white/10 rounded-2xl shadow-lg z-50">
               <div className="pl-4 pr-2">
                 <Search className="w-5 h-5 text-text-muted" />
               </div>
               <input
                 type="text"
                 placeholder="Search for products..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowDropdown(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setShowDropdown(false);
+                    handleSearch();
+                  }
+                }}
+                onFocus={() => setShowDropdown(true)}
                 className="flex-1 bg-transparent border-none outline-none py-4 text-text-primary placeholder:text-text-muted text-base"
               />
+              {/* CLEAR BUTTON */}
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSearchResults([]);
+                  }}
+                  className="pr-4 text-text-muted hover:text-white transition-colors"
+                >
+                  <span className="sr-only">Clear</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
+
+            {/* REAL-TIME SEARCH RESULTS DROPDOWN */}
+            {showDropdown && searchQuery.trim() && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-bg-card border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-fade-in backdrop-blur-xl">
+                {searchResults.length > 0 ? (
+                  <>
+                    <div className="max-h-[60vh] overflow-y-auto scrollbar-hide py-2">
+                      {searchResults.map((product) => (
+                        <Link
+                          key={product.id}
+                          href={`/products/${product.id}`}
+                          onClick={() => setShowDropdown(false)}
+                          className="flex items-center gap-4 p-3 hover:bg-white/5 transition-colors group border-b border-white/5 last:border-0"
+                        >
+                          <div className="relative w-12 h-12 rounded-lg bg-white/5 overflow-hidden flex-shrink-0 border border-white/5">
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              fill
+                              className="object-cover group-hover:scale-110 transition-transform duration-300"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium text-text-primary truncate group-hover:text-white transition-colors">
+                              {product.name}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs font-bold text-white bg-white/10 px-1.5 py-0.5 rounded">
+                                {product.price}
+                              </span>
+                              {product.categories.length > 0 && (
+                                <span className="text-[10px] text-text-muted truncate">
+                                  {product.categories[0]}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-white transition-colors -ml-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 duration-200" />
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="p-2 border-t border-white/10 bg-white/5">
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          handleSearch();
+                        }}
+                        className="w-full py-2 text-xs font-medium text-text-secondary hover:text-white transition-colors flex items-center justify-center gap-2"
+                      >
+                        View all results for "{searchQuery}" <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-8 text-center text-text-muted">
+                    <p className="text-sm">No products found matching "{searchQuery}"</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* CLICK OUTSIDE HANDLER (Implicit backdrop) */}
+            {showDropdown && (
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowDropdown(false)} 
+                aria-hidden="true"
+              />
+            )}
 
             {/* TRENDING SEARCHES */}
             <div className="mt-6 relative flex items-center gap-2">
@@ -170,6 +303,7 @@ export default function Home() {
                   ].map((term) => (
                     <span
                       key={term}
+                      onClick={() => handleSearch(term)}
                       className="bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full text-text-secondary hover:text-white cursor-pointer transition-all duration-200 text-sm border border-white/10 whitespace-nowrap flex-shrink-0"
                     >
                       {term}
@@ -196,7 +330,7 @@ export default function Home() {
       <div className="mb-8 md:mb-16 px-4 md:max-w-7xl md:mx-auto py-4 md:py-8">
         <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
           {loadingProducts ? (
-            Array.from({ length: 12 }).map((_, i) => (
+            Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="bg-bg-card border border-white/5 rounded-xl overflow-hidden animate-pulse">
                 <div className="aspect-square bg-white/5" />
                 <div className="p-4 space-y-2">

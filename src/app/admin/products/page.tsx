@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getProducts, getAdminProducts, ProductFromDB } from "@/lib/supabase/products";
+import { getCategories } from "@/lib/supabase/categories";
+import { invalidateAdminCache } from "@/lib/supabase/admin";
+import { useImagePreload } from "@/hooks/useImagePreload";
 import { 
   Plus, 
   Search, 
   Filter, 
   X, 
-  Edit, 
+  Settings, 
   Trash2, 
   ChevronUp, 
   ChevronDown,
@@ -18,10 +22,19 @@ import {
   ChevronLeft,
   ChevronRight,
   FolderOpen,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Check,
+  Upload,
+  Link2,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  Save,
+  ArrowLeft
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { convertLink } from "@/lib/linkConverter";
 
 interface Category {
   id: number;
@@ -34,11 +47,15 @@ interface Product {
   price: string;
   image: string;
   is_featured: boolean;
+  is_best_seller?: boolean;
+  link?: string;
+  description?: string;
   product_categories: { categories: { id: number; name: string } }[];
   qc_groups: { count: number }[];
 }
 
 export default function AdminProductsPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,16 +64,36 @@ export default function AdminProductsPage() {
   // Filters
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [filterFeatured, setFilterFeatured] = useState<string>("all");
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Sorting
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
-  // Inline Delete State
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Form State
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [image, setImage] = useState("");
+  const [link, setLink] = useState("");
+  const [description, setDescription] = useState("");
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [isBestSeller, setIsBestSeller] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [linkConversion, setLinkConversion] = useState<{
+    success: boolean;
+    agentCount: number;
+    platform: string | null;
+    error: string | null;
+  } | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Featured toggle loading state
   const [togglingFeaturedId, setTogglingFeaturedId] = useState<number | null>(null);
 
@@ -73,40 +110,286 @@ export default function AdminProductsPage() {
   async function fetchData() {
     setLoading(true);
     
-    const { data: catData } = await supabase.from("categories").select("id, name");
-    if (catData) setCategories(catData);
+    try {
+      // Use cached utilities
+      const [catData, productsFromDB] = await Promise.all([
+        getCategories(),
+        getAdminProducts()
+      ]);
 
-    const { data, error } = await supabase
-      .from("products")
-      .select(`
-        *,
-        product_categories (
-          categories (
-            id,
-            name
-          )
-        ),
-        qc_groups(count)
-      `)
-      .order("id", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching products:", error);
-    } else {
+      if (catData) setCategories(catData.map(c => ({ id: c.id, name: c.name })));
       // @ts-ignore
-      setProducts(data || []);
+      setProducts(productsFromDB || []);
+    } catch (error) {
+      console.error("Error fetching admin data:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleDelete(id: number) {
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) {
-       alert("Error deleting product: " + error.message);
-    } else {
-      setProducts(products.filter(p => p.id !== id));
-      setConfirmDeleteId(null);
+    try {
+      // 1. Get main image URL
+      const productToDelete = products.find(p => p.id === id);
+      const imageUrls: string[] = [];
+      if (productToDelete?.image) {
+        imageUrls.push(productToDelete.image);
+      }
+
+      // 2. Get all QC image URLs
+      const { data: qcCats } = await supabase
+        .from("qc_groups")
+        .select("id, qc_images(image_url)")
+        .eq("product_id", id);
+
+      if (qcCats) {
+        qcCats.forEach(group => {
+          if (group.qc_images) {
+            (group.qc_images as any[]).forEach(img => {
+              if (img.image_url) imageUrls.push(img.image_url);
+            });
+          }
+        });
+      }
+
+      // 3. Delete files from storage
+      if (imageUrls.length > 0) {
+        const fileNames = imageUrls
+          .map(url => url.split("/").pop())
+          .filter(Boolean) as string[];
+
+        if (fileNames.length > 0) {
+          const { error: storageError } = await supabase.storage
+            .from("product-images")
+            .remove(fileNames);
+          
+          if (storageError) {
+            console.error("Error cleaning up storage:", storageError);
+          }
+        }
+      }
+
+      // 4. Delete the product record
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) {
+        alert("Error deleting product record: " + error.message);
+      } else {
+        invalidateAdminCache();
+        setProducts(products.filter(p => p.id !== id));
+        setIsDeleting(false);
+        setIsModalOpen(false);
+        setEditingProduct(null);
+      }
+    } catch (err) {
+      console.error("Delete process error:", err);
+      alert("An unexpected error occurred during deletion.");
     }
+  }
+
+  function handleOpenModal(product?: Product) {
+    if (product) {
+      setEditingProduct(product);
+      setName(product.name);
+      setPrice(product.price);
+      setImage(product.image);
+      setLink(product.link || "");
+      setDescription(product.description || "");
+      setIsFeatured(product.is_featured);
+      setIsBestSeller(product.is_best_seller || false);
+      
+      if (product.product_categories) {
+         const ids = product.product_categories.map((pc: any) => pc.categories?.id).filter(Boolean);
+         setSelectedCategoryIds(ids);
+      } else {
+         setSelectedCategoryIds([]);
+      }
+
+      if (product.link) {
+        const result = convertLink(product.link);
+        if (result.success) {
+          setLinkConversion({
+            success: true,
+            agentCount: result.results?.length || 0,
+            platform: result.platform || null,
+            error: null,
+          });
+        }
+      } else {
+        setLinkConversion(null);
+      }
+    } else {
+      setEditingProduct(null);
+      setName("");
+      setPrice("");
+      setImage("");
+      setLink("");
+      setDescription("");
+      setIsFeatured(false);
+      setIsBestSeller(false);
+      setSelectedCategoryIds([]);
+      setLinkConversion(null);
+    }
+    setIsDeleting(false);
+    setIsModalOpen(true);
+  }
+
+  function toggleCategory(categoryId: number) {
+    setSelectedCategoryIds(prev => {
+      const isSelected = prev.includes(categoryId);
+      if (!isSelected && prev.length >= 5) {
+        return prev; // Limit reached
+      }
+      return isSelected 
+        ? prev.filter(c => c !== categoryId) 
+        : [...prev, categoryId];
+    });
+  }
+
+  async function handleImageUpload(file: File) {
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file");
+      return;
+    }
+
+    setUploading(true);
+    
+    const ext = file.name.split(".").pop() || "png";
+    const fileName = `product-${editingProduct?.id || "new"}-${Date.now()}.${ext}`;
+    
+    const { data, error } = await supabase.storage
+      .from("product-images")
+      .upload(fileName, file, { upsert: true });
+
+    if (error) {
+      console.error("Upload error:", error);
+      alert("Error uploading image: " + error.message);
+      setUploading(false);
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from("product-images")
+      .getPublicUrl(fileName);
+
+    setImage(publicUrl);
+    setUploading(false);
+  }
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageUpload(file);
+  }, [editingProduct]);
+
+  function handleLinkChange(value: string) {
+    setLink(value);
+    
+    if (!value.trim()) {
+      setLinkConversion(null);
+      return;
+    }
+
+    const result = convertLink(value.trim());
+    if (result.success) {
+      setLinkConversion({
+        success: true,
+        agentCount: result.results?.length || 0,
+        platform: result.platform || null,
+        error: null,
+      });
+    } else {
+      setLinkConversion({
+        success: false,
+        agentCount: 0,
+        platform: null,
+        error: result.error || "Unsupported link",
+      });
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!name || !price || !image || !link || selectedCategoryIds.length === 0) {
+      alert("Please fill in all required fields (Name, Price, Category, Image, and Link).");
+      return;
+    }
+
+    setSaving(true);
+    
+    const productData = {
+      name,
+      price,
+      image,
+      link,
+      description,
+      is_featured: isFeatured,
+      is_best_seller: isBestSeller,
+      updated_at: new Date().toISOString(),
+    };
+
+    let productId: number;
+
+    if (editingProduct) {
+      const { error } = await supabase
+        .from("products")
+        .update(productData)
+        .eq("id", editingProduct.id);
+
+      if (error) {
+        alert("Error updating product: " + error.message);
+        setSaving(false);
+        return;
+      }
+      productId = editingProduct.id;
+    } else {
+      const { data, error } = await supabase
+        .from("products")
+        .insert([{ ...productData, created_at: new Date().toISOString() }])
+        .select()
+        .single();
+
+      if (error) {
+        alert("Error creating product: " + error.message);
+        setSaving(false);
+        return;
+      }
+      productId = data.id;
+    }
+
+    // Update categories
+    await supabase.from("product_categories").delete().eq("product_id", productId);
+
+    if (selectedCategoryIds.length > 0) {
+      const categoryInserts = selectedCategoryIds.map(catId => ({
+        product_id: productId,
+        category_id: catId,
+      }));
+
+      const { error: catError } = await supabase
+        .from("product_categories")
+        .insert(categoryInserts);
+
+      if (catError) {
+        console.error("Error linking categories:", catError);
+      }
+    }
+
+    setIsModalOpen(false);
+    setSaving(false);
+    invalidateAdminCache(); // Clear both product and stats caches
+    fetchData();
   }
 
   async function handleToggleFeatured(productId: number, currentValue: boolean) {
@@ -156,14 +439,10 @@ export default function AdminProductsPage() {
     const matchesFeatured = 
       filterFeatured === "all" ? true :
       filterFeatured === "featured" ? product.is_featured :
-      !product.is_featured;
+      filterFeatured === "best_seller" ? product.is_best_seller :
+      true;
 
-    // Price range
-    const price = parsePrice(product.price);
-    const matchesPriceMin = priceMin ? price >= parseFloat(priceMin) : true;
-    const matchesPriceMax = priceMax ? price <= parseFloat(priceMax) : true;
-
-    return matchesSearch && matchesCategory && matchesFeatured && matchesPriceMin && matchesPriceMax;
+    return matchesSearch && matchesCategory && matchesFeatured;
   }).sort((a, b) => {
     if (!sortConfig) return 0;
     
@@ -196,37 +475,63 @@ export default function AdminProductsPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, selectedCategory, filterFeatured, priceMin, priceMax, sortConfig]);
+  }, [search, selectedCategory, filterFeatured, sortConfig]);
 
-  const hasActiveFilters = selectedCategory || filterFeatured !== "all" || search || sortConfig || priceMin || priceMax;
+  // Preload images for the current view
+  useImagePreload(paginatedProducts.map(p => p.image));
+
+  const hasActiveFilters = selectedCategory || filterFeatured !== "all" || search || sortConfig;
 
   const clearAllFilters = () => {
     setSelectedCategory("");
     setFilterFeatured("all");
     setSearch("");
     setSortConfig(null);
-    setPriceMin("");
-    setPriceMax("");
   };
+
+  // Best seller toggle handler
+  async function handleToggleBestSeller(productId: number, currentValue: boolean) {
+    const { error } = await supabase
+      .from("products")
+      .update({ is_best_seller: !currentValue })
+      .eq("id", productId);
+    
+    if (error) {
+      alert("Error updating best seller status: " + error.message);
+    } else {
+      setProducts(prev => prev.map(p => 
+        p.id === productId ? { ...p, is_best_seller: !currentValue } : p
+      ));
+    }
+  }
 
   return (
     <div className="space-y-6 animate-fade-in relative pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-1 font-display">Products</h1>
-          <p className="text-text-secondary text-sm">
-            {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""} 
-            {hasActiveFilters ? " matching filters" : " total"}
-            {!hasActiveFilters && ` · ${products.filter(p => p.is_featured).length} featured`}
-          </p>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.back()}
+            className="p-2 rounded-xl bg-white/5 border border-white/5 text-neutral-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+            title="Go Back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-1 font-display">Products</h1>
+            <p className="text-text-secondary text-sm">
+              {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""} 
+              {hasActiveFilters ? " matching filters" : " total"}
+              {!hasActiveFilters && ` · ${products.filter(p => p.is_featured).length} featured`}
+            </p>
+          </div>
         </div>
-        <Link
-            href="/admin/products/new"
+        <button
+            onClick={() => handleOpenModal()}
             className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-xl font-bold hover:bg-white/90 transition-all active:scale-95 text-sm"
         >
             <Plus className="w-4 h-4" />
             Add Product
-        </Link>
+        </button>
       </div>
 
       {/* Search & Filter Bar */}
@@ -275,63 +580,25 @@ export default function AdminProductsPage() {
               onChange={(e) => setFilterFeatured(e.target.value)}
               className="w-full bg-neutral-800/50 border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-white/15 transition-all appearance-none cursor-pointer focus:ring-0"
             >
-              <option value="all">All Status</option>
-              <option value="featured">Featured</option>
-              <option value="standard">Standard</option>
+              <option value="all">All Products</option>
+              <option value="featured">Featured Products</option>
+              <option value="best_seller">Best Sellers</option>
             </select>
           </div>
 
-          {/* Advanced + Reset */}
-          <div className="md:col-span-2 flex gap-2">
-            <button
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-                showAdvancedFilters 
-                  ? "bg-white/10 border-white/15 text-white" 
-                  : "bg-neutral-800/50 border-white/5 text-neutral-400 hover:text-white hover:border-white/10"
-              }`}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              Filters
-            </button>
+          {/* Reset */}
+          <div className="md:col-span-2 flex gap-2 items-center">
             {hasActiveFilters && (
               <button
                 onClick={clearAllFilters}
-                className="px-3 py-2.5 bg-neutral-800/50 border border-white/5 rounded-xl text-xs font-bold text-neutral-400 hover:text-white hover:border-white/10 transition-all flex items-center justify-center gap-1"
+                className="flex-1 px-3 py-2.5 bg-neutral-800/50 border border-white/5 rounded-xl text-xs font-bold text-neutral-400 hover:text-white hover:border-white/10 transition-all flex items-center justify-center gap-1"
               >
                 <X className="w-3.5 h-3.5" />
+                Clear Filters
               </button>
             )}
           </div>
         </div>
-
-        {/* Advanced Filters Panel */}
-        {showAdvancedFilters && (
-          <div className="border-t border-white/5 pt-4 animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="md:col-span-2">
-                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5 block">Price Range</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    placeholder="Min"
-                    value={priceMin}
-                    onChange={(e) => setPriceMin(e.target.value)}
-                    className="flex-1 bg-neutral-800/50 border border-white/5 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-white/15 transition-all placeholder:text-neutral-600 focus:ring-0"
-                  />
-                  <span className="text-neutral-500 text-sm">—</span>
-                  <input
-                    type="number"
-                    placeholder="Max"
-                    value={priceMax}
-                    onChange={(e) => setPriceMax(e.target.value)}
-                    className="flex-1 bg-neutral-800/50 border border-white/5 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-white/15 transition-all placeholder:text-neutral-600 focus:ring-0"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Table */}
@@ -392,6 +659,7 @@ export default function AdminProductsPage() {
                        </div>
                     </th>
                     <th className="px-6 py-4">Featured</th>
+                    <th className="px-6 py-4">Best Seller</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -414,13 +682,37 @@ export default function AdminProductsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                         <div className="flex flex-wrap gap-1.5">
+                         <div className="relative group/cats max-w-[180px]">
                             {product.product_categories.length > 0 ? (
-                               product.product_categories.map((pc, idx) => (
-                                  <span key={idx} className="inline-block px-2 py-0.5 bg-white/5 border border-white/5 rounded-md text-[11px] text-neutral-400 font-medium">
-                                     {pc.categories?.name || "Unknown"}
-                                  </span>
-                               ))
+                               <>
+                                 <div className="flex gap-1.5 overflow-hidden">
+                                    {product.product_categories.slice(0, 2).map((pc, idx) => (
+                                       <span key={idx} className="inline-block px-2 py-0.5 bg-white/5 border border-white/5 rounded-md text-[11px] text-neutral-400 font-medium truncate max-w-[80px]">
+                                          {pc.categories?.name || "Unknown"}
+                                       </span>
+                                    ))}
+                                    {product.product_categories.length > 2 && (
+                                       <span className="inline-block px-2 py-0.5 bg-white/5 border border-white/5 rounded-md text-[11px] text-neutral-400 font-medium flex-shrink-0">
+                                          +{product.product_categories.length - 2}
+                                       </span>
+                                    )}
+                                 </div>
+                                 {/* Hover tooltip showing all categories */}
+                                 {product.product_categories.length > 2 && (
+                                    <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/cats:block">
+                                       <div className="bg-neutral-900 border border-white/10 rounded-xl p-3 shadow-2xl min-w-[180px]">
+                                          <p className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold mb-2">All Categories</p>
+                                          <div className="flex flex-wrap gap-1.5">
+                                             {product.product_categories.map((pc, idx) => (
+                                                <span key={idx} className="inline-block px-2 py-0.5 bg-white/5 border border-white/5 rounded-md text-[11px] text-neutral-400 font-medium">
+                                                   {pc.categories?.name || "Unknown"}
+                                                </span>
+                                             ))}
+                                          </div>
+                                       </div>
+                                    </div>
+                                 )}
+                               </>
                             ) : (
                                <span className="text-neutral-600 italic text-[11px]">Uncategorized</span>
                             )}
@@ -459,28 +751,34 @@ export default function AdminProductsPage() {
                           />
                         </button>
                       </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleToggleBestSeller(product.id, !!product.is_best_seller)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                            product.is_best_seller ? "bg-emerald-500" : "bg-neutral-700"
+                          } cursor-pointer`}
+                          title={product.is_best_seller ? "Remove from best sellers" : "Mark as best seller"}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full transition-transform duration-200 ${
+                              product.is_best_seller 
+                                ? "translate-x-6 bg-white" 
+                                : "translate-x-1 bg-neutral-400"
+                            }`}
+                          />
+                        </button>
+                      </td>
                       <td className="px-6 py-4 text-right relative">
                          <div className="flex items-center justify-end gap-2">
-                            <Link 
-                               href={`/admin/products/${product.id}`}
-                               className="p-2 bg-neutral-800/50 border border-white/5 text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg transition-all active:scale-95"
-                               title="Edit Product"
+                            <button 
+                               onClick={() => handleOpenModal(product)}
+                               className="flex items-center gap-2 px-3 py-2 bg-neutral-800/50 border border-white/5 text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg transition-all active:scale-95 group/btn"
+                               title="Manage Product"
                             >
-                               <Edit className="w-3.5 h-3.5" />
-                            </Link>
-                            
-                               <button 
-                                  onClick={(e) => {
-                                     e.stopPropagation();
-                                     setConfirmDeleteId(product.id);
-                                  }}
-                                  className="p-2 bg-red-500/5 border border-red-500/10 text-red-500/60 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all active:scale-95"
-                                  title="Delete Product"
-                               >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                               </button>
-
-                            </div>
+                               <Settings className="w-3.5 h-3.5" />
+                               <span className="text-xs font-bold">Manage</span>
+                            </button>
+                         </div>
                       </td>
                     </tr>
                   ))}
@@ -541,38 +839,322 @@ export default function AdminProductsPage() {
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {confirmDeleteId && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-[10vh]">
-          <div 
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
-            onClick={() => setConfirmDeleteId(null)}
-          />
-          <div className="bg-neutral-900 border border-white/10 rounded-2xl w-full max-w-sm relative z-10 animate-in zoom-in-95 duration-300 shadow-2xl p-6">
-            <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
-              <Trash2 className="w-6 h-6 text-red-500" />
+      {/* Form Sidebar */}
+      <div 
+        className={`fixed inset-y-0 right-0 z-[100] w-full max-w-2xl bg-neutral-950 border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) transform ${
+          isModalOpen ? "translate-x-0" : "translate-x-full invisible"
+        } flex flex-col h-screen`}
+      >
+        <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-tight">
+                {editingProduct ? "Update Product" : "New Product"}
+              </h2>
+              <p className="text-xs text-neutral-500 mt-1">
+                {editingProduct ? "Editing product details" : "Create a new product listing"}
+              </p>
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">Delete Product?</h2>
-            <p className="text-neutral-400 text-sm mb-6 leading-relaxed">
-              Are you sure you want to delete this product? This will also remove any associated QC photos from the gallery and storage.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 px-4 py-3 rounded-xl text-sm font-bold text-neutral-400 hover:text-white hover:bg-white/5 transition-all"
-              >
-                 Cancel
-              </button>
-              <button
-                onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
-                className="flex-1 bg-red-500 text-white px-4 py-3 rounded-xl text-sm font-bold hover:bg-red-400 transition-all active:scale-95"
-              >
-                 Delete
-              </button>
-            </div>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="p-2 hover:bg-white/5 rounded-xl text-neutral-500 hover:text-white transition-all active:scale-95 border border-white/5"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-8 pb-20">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Product Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700"
+                    placeholder="e.g. Jordan 4 Retro Black"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Price <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700"
+                    placeholder="e.g. ￥290"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between pl-1">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Categories <span className="text-red-500">*</span></label>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${selectedCategoryIds.length >= 5 ? "text-amber-500" : "text-neutral-600"}`}>
+                    {selectedCategoryIds.length >= 5 ? "Limit Reached (Max 5)" : "Max 5 Categories"}
+                  </span>
+                </div>
+                <div className="relative mb-3">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                  <input
+                    type="text"
+                    placeholder="Search categories..."
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    className="w-full bg-neutral-900/50 border border-white/5 rounded-xl py-2.5 pl-11 pr-4 text-sm text-white focus:border-white/20 outline-none"
+                  />
+                </div>
+                <div className="border border-white/5 rounded-2xl bg-neutral-900/30 overflow-hidden">
+                  <div className="max-h-48 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+                    {categories
+                      .filter(cat => cat.name.toLowerCase().includes(categorySearch.toLowerCase()))
+                      .map(cat => {
+                        const isSelected = selectedCategoryIds.includes(cat.id);
+                        const isLimitReached = selectedCategoryIds.length >= 5 && !isSelected;
+                        return (
+                          <div 
+                            key={cat.id}
+                            onClick={() => !isLimitReached && toggleCategory(cat.id)}
+                            className={`rounded-xl px-4 py-2.5 flex items-center gap-3 transition-all ${
+                              isSelected 
+                                ? "bg-white/10 text-white cursor-pointer" 
+                                : isLimitReached
+                                  ? "opacity-30 cursor-not-allowed"
+                                  : "text-neutral-500 hover:bg-white/5 hover:text-neutral-300 cursor-pointer"
+                            }`}
+                            title={isLimitReached ? "Maximum of 5 categories reached" : ""}
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0 ${
+                              isSelected ? "bg-white border-white" : "border-neutral-700"
+                            }`}>
+                              {isSelected && <Check className="w-3 h-3 text-black" />}
+                            </div>
+                            <span className="text-sm font-medium">{cat.name}</span>
+                          </div>
+                        );
+                    })}
+                  </div>
+                </div>
+                {selectedCategoryIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {selectedCategoryIds.map(id => {
+                      const cat = categories.find(c => c.id === id);
+                      if (!cat) return null;
+                      return (
+                        <span key={id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10 text-[11px] font-bold text-white border border-white/5 uppercase tracking-wider">
+                          {cat.name}
+                          <button type="button" onClick={(e) => { e.stopPropagation(); toggleCategory(id); }} className="hover:text-red-400">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Description</label>
+                <textarea
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700 resize-none"
+                  placeholder="Additional notes about this product..."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setIsFeatured(!isFeatured)}
+                  className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${
+                    isFeatured 
+                      ? "bg-white/10 border-white/20 text-white" 
+                      : "bg-neutral-900/30 border-white/5 text-neutral-500 hover:text-neutral-300"
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${
+                    isFeatured ? "bg-white border-white" : "border-neutral-700"
+                  }`}>
+                    {isFeatured && <Check className="w-3.5 h-3.5 text-black" />}
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-wider">Featured</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsBestSeller(!isBestSeller)}
+                  className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${
+                    isBestSeller 
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                      : "bg-neutral-900/30 border-white/5 text-neutral-500 hover:text-neutral-300"
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${
+                    isBestSeller ? "bg-emerald-500 border-emerald-500" : "border-neutral-700"
+                  }`}>
+                    {isBestSeller && <Check className="w-3.5 h-3.5 text-black" />}
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-wider">Best Seller</span>
+                </button>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-white/5">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">External Link <span className="text-red-500">*</span></label>
+                  <div className="relative group/input">
+                    <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within/input:text-white transition-colors" />
+                    <input
+                      type="url"
+                      required
+                      value={link}
+                      onChange={(e) => handleLinkChange(e.target.value)}
+                      className="w-full bg-neutral-900/50 border border-white/5 rounded-xl py-3.5 pl-11 pr-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700 font-mono"
+                      placeholder="Taobao, Weidian, or 1688 link..."
+                    />
+                  </div>
+                  {linkConversion && (
+                    <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium animate-in fade-in slide-in-from-top-1 ${
+                      linkConversion.success 
+                        ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-400" 
+                        : "bg-amber-500/5 border-amber-500/10 text-amber-400"
+                    }`}>
+                      {linkConversion.success ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>{linkConversion.platform} detected · {linkConversion.agentCount} agent links ready</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>{linkConversion.error}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pl-1">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Product Media <span className="text-red-500">*</span></label>
+                    {editingProduct && (
+                      <Link 
+                        href={`/admin/qc-images/${editingProduct.id}`}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg transition-all group"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5 text-neutral-500 group-hover:text-white transition-colors" />
+                        <span className="text-[10px] font-bold text-neutral-400 group-hover:text-white uppercase tracking-widest">Manage QC ({editingProduct.qc_groups?.[0]?.count || 0})</span>
+                      </Link>
+                    )}
+                  </div>
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 group overflow-hidden ${
+                      isDragOver 
+                        ? "border-white/40 bg-white/5" 
+                        : "border-white/5 bg-neutral-900/30 hover:border-white/10 hover:bg-neutral-900/50"
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file);
+                      }}
+                    />
+                    <div className="aspect-video flex items-center justify-center">
+                      {uploading ? (
+                        <div className="flex flex-col items-center gap-3">
+                          <Loader2 className="w-8 h-8 animate-spin text-white opacity-40" />
+                          <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Uploading...</span>
+                        </div>
+                      ) : image ? (
+                        <div className="absolute inset-0 p-3">
+                          <div className="relative w-full h-full rounded-xl overflow-hidden group/img shadow-2xl">
+                            <Image src={image} alt="Preview" fill className="object-cover transition-transform duration-700 group-hover/img:scale-110" />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                              <div className="text-center transform translate-y-2 group-hover/img:translate-y-0 transition-transform duration-300">
+                                <ImageIcon className="w-6 h-6 text-white mx-auto mb-2 opacity-80" />
+                                <p className="text-[10px] font-bold text-white uppercase tracking-widest">Replace Media</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setImage(""); }}
+                              className="absolute top-3 right-3 p-1.5 bg-black/50 hover:bg-red-500 text-white rounded-lg transition-colors backdrop-blur-md z-10"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center p-8">
+                          <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-white/10 transition-all duration-300 shadow-inner">
+                            <Upload className="w-6 h-6 text-neutral-600 group-hover:text-neutral-400 transition-colors" />
+                          </div>
+                          <p className="text-xs font-semibold text-neutral-400">Click or drop to upload</p>
+                          <p className="text-[9px] text-neutral-600 mt-2 uppercase tracking-widest font-bold">PNG, JPG, WEBP • MAX 10MB</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-6 border-t border-white/5 bg-neutral-950 sticky bottom-0 z-20 pb-4">
+              <button
+                type="submit"
+                disabled={saving || uploading || !name || !price || !image || !link || selectedCategoryIds.length === 0}
+                className="flex-[2] bg-white text-black px-6 py-3.5 rounded-xl text-sm font-bold hover:bg-neutral-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {editingProduct ? "Save Changes" : "Create Product"}
+              </button>
+              
+              {editingProduct && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isDeleting) {
+                      handleDelete(editingProduct.id);
+                    } else {
+                      setIsDeleting(true);
+                    }
+                  }}
+                  className={`flex-1 px-4 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                    isDeleting 
+                      ? "bg-red-500 text-white animate-pulse" 
+                      : "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
+                  }`}
+                  title={isDeleting ? "Confirm Delete" : "Delete Product"}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="truncate">{isDeleting ? "Sure?" : "Delete"}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 px-4 py-3.5 rounded-xl text-sm font-medium text-neutral-500 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </div>
     </div>
   );
 }

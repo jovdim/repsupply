@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { cacheGet, cacheSet, cacheInvalidatePrefix, TTL } from "@/lib/cache";
+import { smartFetch, cacheInvalidatePrefix, TTL } from "@/lib/cache";
 
 export interface ProductFromDB {
   id: number;
@@ -54,10 +54,8 @@ export async function getProducts(
   search?: string
 ): Promise<ProductFromDB[]> {
   // Only cache unfiltered-all queries (other filters are applied client-side)
-  const cacheKey = "products:all";
-  let all = cacheGet<ProductFromDB[]>(cacheKey);
-
-  if (!all) {
+  // SmartFetch handles L1/L2 caching and deduplication
+  const all = await smartFetch<ProductFromDB[]>("products:all", async () => {
     const supabase = createClient();
     const { data: products, error } = await supabase
       .from("products")
@@ -69,9 +67,8 @@ export async function getProducts(
       return [];
     }
 
-    all = products.map(transformProduct);
-    cacheSet(cacheKey, all, TTL.MEDIUM);
-  }
+    return products.map(transformProduct);
+  }, TTL.MEDIUM);
 
   let result = all;
 
@@ -97,26 +94,22 @@ export async function getProducts(
 export async function getFeaturedProducts(
   limit: number = 12
 ): Promise<ProductFromDB[]> {
-  const cacheKey = `products:featured:${limit}`;
-  const cached = cacheGet<ProductFromDB[]>(cacheKey);
-  if (cached) return cached;
+  return smartFetch<ProductFromDB[]>(`products:featured:${limit}`, async () => {
+    const supabase = createClient();
+    const { data: products, error } = await supabase
+      .from("products")
+      .select(PRODUCT_SELECT)
+      .eq("is_featured", true)
+      .order("id", { ascending: true })
+      .limit(limit);
 
-  const supabase = createClient();
-  const { data: products, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_featured", true)
-    .order("id", { ascending: true })
-    .limit(limit);
+    if (error || !products) {
+      console.error("Error fetching featured products:", error);
+      return [];
+    }
 
-  if (error || !products) {
-    console.error("Error fetching featured products:", error);
-    return [];
-  }
-
-  const result = products.map(transformProduct);
-  cacheSet(cacheKey, result, TTL.MEDIUM);
-  return result;
+    return products.map(transformProduct);
+  }, TTL.MEDIUM);
 }
 
 /**
@@ -125,54 +118,49 @@ export async function getFeaturedProducts(
 export async function getProductById(
   id: number
 ): Promise<ProductFromDB | null> {
-  const cacheKey = `product:${id}`;
-  const cached = cacheGet<ProductFromDB>(cacheKey);
-  if (cached) return cached;
+  return smartFetch<ProductFromDB | null>(`product:${id}`, async () => {
+    const supabase = createClient();
 
-  const supabase = createClient();
+    // Fetch product + QC data in parallel
+    const [productRes, qcRes] = await Promise.all([
+      supabase.from("products").select(PRODUCT_SELECT).eq("id", id).single(),
+      supabase
+        .from("qc_groups")
+        .select(`
+          id,
+          folder_name,
+          sort_order,
+          qc_images (
+            image_url,
+            sort_order
+          )
+        `)
+        .eq("product_id", id)
+        .order("sort_order", { ascending: true }),
+    ]);
 
-  // Fetch product + QC data in parallel
-  const [productRes, qcRes] = await Promise.all([
-    supabase.from("products").select(PRODUCT_SELECT).eq("id", id).single(),
-    supabase
-      .from("qc_groups")
-      .select(`
-        id,
-        folder_name,
-        sort_order,
-        qc_images (
-          image_url,
-          sort_order
-        )
-      `)
-      .eq("product_id", id)
-      .order("sort_order", { ascending: true }),
-  ]);
+    if (productRes.error || !productRes.data) {
+      console.error("Error fetching product:", productRes.error);
+      return null;
+    }
 
-  if (productRes.error || !productRes.data) {
-    console.error("Error fetching product:", productRes.error);
-    return null;
-  }
+    if (qcRes.error) {
+      console.error("Error fetching QC groups:", qcRes.error);
+    }
 
-  if (qcRes.error) {
-    console.error("Error fetching QC groups:", qcRes.error);
-  }
+    const qcImages = (qcRes.data || []).map((group: any) => ({
+      folder: group.folder_name,
+      sort_order: group.sort_order,
+      images: (group.qc_images || [])
+        .sort((a: any, b: any) => a.sort_order - b.sort_order)
+        .map((img: any) => img.image_url),
+    })).sort((a: any, b: any) => a.sort_order - b.sort_order);
 
-  const qcImages = (qcRes.data || []).map((group: any) => ({
-    folder: group.folder_name,
-    sort_order: group.sort_order,
-    images: (group.qc_images || [])
-      .sort((a: any, b: any) => a.sort_order - b.sort_order)
-      .map((img: any) => img.image_url),
-  })).sort((a: any, b: any) => a.sort_order - b.sort_order);
-
-  const result: ProductFromDB = {
-    ...transformProduct(productRes.data),
-    qcImages,
-  };
-
-  cacheSet(cacheKey, result, TTL.MEDIUM);
-  return result;
+    return {
+      ...transformProduct(productRes.data),
+      qcImages,
+    };
+  }, TTL.MEDIUM);
 }
 
 /**
@@ -183,8 +171,39 @@ export async function getAllProductsLight(): Promise<ProductFromDB[]> {
 }
 
 /**
+ * Fetch all products for admin management with categories and QC group counts. Cached for 5 minutes.
+ */
+export async function getAdminProducts(): Promise<any[]> {
+  return smartFetch<any[]>("admin:products_list", async () => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select(`
+        *,
+        product_categories (
+          categories (
+            id,
+            name
+          )
+        ),
+        qc_groups(count)
+      `)
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching admin products:", error);
+      return [];
+    }
+
+    return data || [];
+  }, TTL.MEDIUM);
+}
+
+/**
  * Invalidate all product caches (call after admin edits).
  */
 export function invalidateProductCache(): void {
   cacheInvalidatePrefix("product");
+  cacheInvalidatePrefix("admin:products_list");
+  cacheInvalidatePrefix("admin"); // Clear admin stats too
 }

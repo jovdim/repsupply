@@ -12,6 +12,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { convertLink, type AgentLink } from "@/lib/linkConverter";
 
@@ -33,6 +35,7 @@ const supportedPlatforms = [
 ];
 
 export default function ConverterPage() {
+  const router = useRouter();
   const [inputUrl, setInputUrl] = useState("");
   const [results, setResults] = useState<AgentLink[]>([]);
   const [detectedPlatform, setDetectedPlatform] = useState<string | null>(null);
@@ -80,6 +83,14 @@ export default function ConverterPage() {
   return (
     <div className="min-h-screen pt-24 md:pt-32 pb-12 px-4">
       <div className="max-w-3xl mx-auto">
+        {/* Back Navigation */}
+        <button
+          onClick={() => router.back()}
+          className="mb-8 inline-flex items-center gap-2 text-text-muted hover:text-white transition-colors text-sm font-medium cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
         {/* Header */}
         <div className="text-center mb-10 animate-fade-in">
           <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-bg-card border border-white/10 flex items-center justify-center">

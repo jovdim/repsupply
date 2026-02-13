@@ -1,13 +1,14 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { invalidateProductCache } from "@/lib/supabase/products";
-import { ArrowLeft, Plus, X, Upload, Trash2, Folder, Image as ImageIcon, Save, Check, FileUp, ExternalLink } from "lucide-react";
+import { ArrowLeft, Plus, X, Upload, Trash2, Folder, Image as ImageIcon, Save, Check, FileUp, ExternalLink, Archive } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import JSZip from "jszip";
 
 interface QcImage {
   id: number;
@@ -42,7 +43,7 @@ export default function ManageQcImagesPage() {
   const [isDragOverGroupId, setIsDragOverGroupId] = useState<number | null>(null);
   const [isGlobalDragOver, setIsGlobalDragOver] = useState(false);
   const [isCreatingGroupUpload, setIsCreatingGroupUpload] = useState(false);
-  
+  const [uploadProgress, setUploadProgress] = useState<{ total: number; completed: number; currentSet: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,6 +56,12 @@ export default function ManageQcImagesPage() {
   // Global Paste Handler
   useEffect(() => {
      const handlePaste = (e: ClipboardEvent) => {
+        // Prevent concurrent uploads
+        if (isCreatingGroupUpload || uploadingGroupId !== null) {
+           alert("Please wait for the current upload to finish.");
+           return;
+        }
+
         const items = e.clipboardData?.items;
         if (!items) return;
 
@@ -67,7 +74,7 @@ export default function ManageQcImagesPage() {
         }
 
         if (files.length > 0) {
-           handleCreateGroupAndUpload(files, `Album ${groups.length + 1}`);
+           handleCreateGroupAndUpload(files, `Set ${groups.length + 1}`);
         }
      };
 
@@ -156,22 +163,22 @@ export default function ManageQcImagesPage() {
     // Prevent adding new group if the most recent one is empty
     const emptyGroup = groups.find(g => g.qc_images.length === 0);
     if (emptyGroup) {
-      alert(`Please upload photos to "${emptyGroup.folder_name}" before creating a new album.`);
+      alert(`Please upload photos to "${emptyGroup.folder_name}" before creating a new set.`);
       return;
     }
 
-    const nextAlbumName = `Album ${groups.length + 1}`;
+    const nextSetName = `Set ${groups.length + 1}`;
 
     const { error } = await supabase
       .from("qc_groups")
       .insert({
         product_id: parseInt(id),
-        folder_name: nextAlbumName,
+        folder_name: nextSetName,
         sort_order: groups.length,
       });
 
     if (error) {
-      alert("Error adding album: " + error.message);
+      alert("Error adding set: " + error.message);
     } else {
       invalidateProductCache();
       fetchData();
@@ -182,7 +189,7 @@ export default function ManageQcImagesPage() {
 async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: string) {
    if (!files || (files instanceof FileList && files.length === 0) || (Array.isArray(files) && files.length === 0)) return;
    
-   // 1. Check if an empty album exists to redirect to
+   // 1. Check if an empty set exists to redirect to
    const emptyGroup = groups.find(g => g.qc_images.length === 0);
    if (emptyGroup) {
       handleUploadImages(files, emptyGroup.id);
@@ -190,6 +197,7 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
    }
 
    setIsCreatingGroupUpload(true);
+   setUploadProgress({ total: (files instanceof FileList ? files.length : files.length), completed: 0, currentSet: groupName });
    
    // 2. Create Group
    const { data: groupData, error: groupError } = await supabase
@@ -203,16 +211,17 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
       .single();
       
    if (groupError || !groupData) {
-      alert("Error creating group for upload: " + groupError?.message);
+      alert("Error creating set for upload: " + groupError?.message);
       setIsCreatingGroupUpload(false);
+      setUploadProgress(null);
       return;
    }
    
    const newGroupId = groupData.id;
    
    // 3. Upload Images
-   // Re-using upload logic but customized for this flow to avoid state race conditions with group list
    const fileArray = files instanceof FileList ? Array.from(files) : files;
+   let completed = 0;
    
    const uploads = fileArray.map(async (file, index) => {
       if (!file.type.startsWith("image/")) return null;
@@ -230,6 +239,9 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
          .from("product-images")
          .getPublicUrl(fileName);
 
+      completed++;
+      setUploadProgress(prev => prev ? { ...prev, completed } : null);
+
       return {
          qc_group_id: newGroupId,
          image_url: publicUrl,
@@ -245,12 +257,174 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
    }
    
    setIsCreatingGroupUpload(false);
+   setUploadProgress(null);
+   // Invalidate QC list cache
+   sessionStorage.removeItem("admin_qc_products_cache");
    invalidateProductCache();
    fetchData();
 }
 
+  // Handle ZIP file upload - extracts folders and creates QC sets
+  async function handleZipUpload(file: File) {
+    setIsCreatingGroupUpload(true);
+    setUploadProgress({ total: 0, completed: 0, currentSet: "Extracting ZIP..." });
+
+    try {
+      const zip = await JSZip.loadAsync(file);
+      
+      // Organize files by folder
+      const folderMap = new Map<string, File[]>();
+      const rootFiles: File[] = [];
+
+      const promises: Promise<void>[] = [];
+      zip.forEach((relativePath, zipEntry) => {
+        if (zipEntry.dir) return;
+        if (!relativePath.match(/\.(jpg|jpeg|png|webp|gif|bmp)$/i)) return;
+        // Skip macOS resource fork files
+        if (relativePath.includes("__MACOSX")) return;
+
+        const parts = relativePath.split("/");
+        const folderName = parts.length > 1 ? parts[0] : null;
+
+        promises.push(
+          zipEntry.async("blob").then((blob) => {
+            const fileName = parts[parts.length - 1];
+            const imageFile = new File([blob], fileName, { type: `image/${fileName.split(".").pop()?.toLowerCase() || "png"}` });
+            
+            if (folderName) {
+              if (!folderMap.has(folderName)) {
+                folderMap.set(folderName, []);
+              }
+              folderMap.get(folderName)!.push(imageFile);
+            } else {
+              rootFiles.push(imageFile);
+            }
+          })
+        );
+      });
+
+      await Promise.all(promises);
+
+      // Calculate total images
+      let totalImages = rootFiles.length;
+      folderMap.forEach(files => totalImages += files.length);
+      let completedImages = 0;
+
+      setUploadProgress({ total: totalImages, completed: 0, currentSet: "Uploading..." });
+
+      // Create QC sets from folders
+      let setIndex = groups.length;
+      
+      for (const [folderName, files] of folderMap) {
+        const setName = `Set ${setIndex + 1}`;
+        setUploadProgress(prev => prev ? { ...prev, currentSet: setName } : null);
+
+        const { data: groupData, error: groupError } = await supabase
+          .from("qc_groups")
+          .insert({
+            product_id: parseInt(id),
+            folder_name: setName,
+            sort_order: setIndex,
+          })
+          .select()
+          .single();
+
+        if (groupError || !groupData) continue;
+
+        const uploads = files.map(async (imgFile, imgIndex) => {
+          const ext = imgFile.name.split(".").pop() || "png";
+          const fileName = `qc-${id}-${groupData.id}-${Date.now()}-${imgIndex}.${ext}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("product-images")
+            .upload(fileName, imgFile);
+
+          if (uploadError) return null;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from("product-images")
+            .getPublicUrl(fileName);
+
+          completedImages++;
+          setUploadProgress(prev => prev ? { ...prev, completed: completedImages } : null);
+
+          return {
+            qc_group_id: groupData.id,
+            image_url: publicUrl,
+            sort_order: imgIndex,
+          };
+        });
+
+        const results = await Promise.all(uploads);
+        const valid = results.filter(Boolean) as any[];
+        if (valid.length > 0) {
+          await supabase.from("qc_images").insert(valid);
+        }
+
+        setIndex++;
+      }
+
+      // Handle root-level files (create one set)
+      if (rootFiles.length > 0) {
+        const setName = `Set ${setIndex + 1}`;
+        setUploadProgress(prev => prev ? { ...prev, currentSet: setName } : null);
+
+        const { data: groupData, error: groupError } = await supabase
+          .from("qc_groups")
+          .insert({
+            product_id: parseInt(id),
+            folder_name: setName,
+            sort_order: setIndex,
+          })
+          .select()
+          .single();
+
+        if (!groupError && groupData) {
+          const uploads = rootFiles.map(async (imgFile, imgIndex) => {
+            const ext = imgFile.name.split(".").pop() || "png";
+            const fileName = `qc-${id}-${groupData.id}-${Date.now()}-${imgIndex}.${ext}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from("product-images")
+              .upload(fileName, imgFile);
+
+            if (uploadError) return null;
+
+            const { data: { publicUrl } } = supabase.storage
+              .from("product-images")
+              .getPublicUrl(fileName);
+
+            completedImages++;
+            setUploadProgress(prev => prev ? { ...prev, completed: completedImages } : null);
+
+            return {
+              qc_group_id: groupData.id,
+              image_url: publicUrl,
+              sort_order: imgIndex,
+            };
+          });
+
+          const results = await Promise.all(uploads);
+          const valid = results.filter(Boolean) as any[];
+          if (valid.length > 0) {
+            await supabase.from("qc_images").insert(valid);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("ZIP processing error:", err);
+      alert("Error processing ZIP file. Make sure it contains valid image files.");
+    }
+
+    setIsCreatingGroupUpload(false);
+    setUploadProgress(null);
+    sessionStorage.removeItem("admin_qc_products_cache");
+    invalidateProductCache();
+    fetchData();
+  }
+
   async function handleDeleteGroup(groupId: number) {
-    if (!confirm("Are you sure? This will delete all images in this album. Other albums will be re-numbered automatically.")) return;
+    if (!confirm("Are you sure? This will delete all images in this set. Other sets will be re-numbered automatically.")) return;
 
     // 1. Get all image URLs for this group to delete from storage
     const group = groups.find(g => g.id === groupId);
@@ -269,7 +443,7 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
 
     const { error } = await supabase.from("qc_groups").delete().eq("id", groupId);
     if (error) {
-       alert("Error deleting album: " + error.message);
+       alert("Error deleting set: " + error.message);
     } else {
        // Re-fetch and re-order names
        const { data: remainingGroups, error: fetchError } = await supabase
@@ -283,7 +457,7 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
           const updates = remainingGroups.map((g, index) => ({
              id: g.id,
              product_id: parseInt(id),
-             folder_name: `Album ${index + 1}`,
+             folder_name: `Set ${index + 1}`,
              sort_order: index
           }));
 
@@ -291,17 +465,24 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
              const { error: updateError } = await supabase
                 .from("qc_groups")
                 .upsert(updates);
-             if (updateError) console.error("Error re-ordering albums:", updateError);
+             if (updateError) console.error("Error re-ordering sets:", updateError);
           }
        }
 
        invalidateProductCache();
+       sessionStorage.removeItem("admin_qc_products_cache");
        fetchData();
     }
   }
 
   async function handleUploadImages(files: FileList | File[] | null, groupId: number) {
     if (!files || (files instanceof FileList && files.length === 0) || (Array.isArray(files) && files.length === 0)) return;
+    
+    // Prevent concurrent uploads
+    if (isCreatingGroupUpload || uploadingGroupId !== null) {
+       alert("Please wait for the current upload to finish.");
+       return;
+    }
     
     setUploadingGroupId(groupId);
     const group = groups.find(g => g.id === groupId);
@@ -433,21 +614,53 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
     e.preventDefault();
     e.stopPropagation(); // Stop bubbling to global
     setIsDragOverGroupId(null);
+
+    // Prevent concurrent uploads
+    if (isCreatingGroupUpload || uploadingGroupId !== null) {
+       alert("Please wait for the current upload to finish.");
+       return;
+    }
     
+    // Check for ZIP files first
+    const dataFiles = e.dataTransfer.files;
+    for (let i = 0; i < dataFiles.length; i++) {
+       const file = dataFiles[i];
+       if (file.name.endsWith(".zip") || file.type === "application/zip" || file.type === "application/x-zip-compressed") {
+          await handleZipUpload(file);
+          return;
+       }
+    }
+
     const files = await scanFilesRecursively(e.dataTransfer.items);
     if (files.length > 0) {
        handleUploadImages(files, groupId);
     }
   }, [groups]); // eslint-disable-line react-hooks/exhaustive-deps
   
-  // Global Drop (Create new album)
+  // Global Drop (Create new set or handle ZIP)
   const handleGlobalDrop = async (e: React.DragEvent) => {
      e.preventDefault();
      setIsGlobalDragOver(false);
+
+     // Prevent concurrent uploads
+     if (isCreatingGroupUpload || uploadingGroupId !== null) {
+        alert("Please wait for the current upload to finish.");
+        return;
+     }
+
+     // Check for ZIP files first
+     const dataFiles = e.dataTransfer.files;
+     for (let i = 0; i < dataFiles.length; i++) {
+        const file = dataFiles[i];
+        if (file.name.endsWith(".zip") || file.type === "application/zip" || file.type === "application/x-zip-compressed") {
+           await handleZipUpload(file);
+           return;
+        }
+     }
      
      const files = await scanFilesRecursively(e.dataTransfer.items);
      if (files.length > 0) {
-        await handleCreateGroupAndUpload(files, `Album ${groups.length + 1}`);
+        await handleCreateGroupAndUpload(files, `Set ${groups.length + 1}`);
      }
   };
 
@@ -472,8 +685,12 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-8 pointer-events-none">
             <div className="bg-white/10 border-2 border-dashed border-white/40 rounded-3xl p-12 text-center max-w-lg w-full animate-scale-in">
                <FileUp className="w-16 h-16 text-white mx-auto mb-4" />
-               <h3 className="text-2xl font-bold text-white mb-2">Drop files to Create New Album</h3>
-               <p className="text-neutral-300">Images will be added to a new album automatically.</p>
+               <h3 className="text-2xl font-bold text-white mb-2">Drop to Create New QC Set</h3>
+               <p className="text-neutral-300 mb-3">Images will be added to a new set automatically.</p>
+               <div className="flex items-center justify-center gap-2 text-sm text-neutral-400">
+                  <Archive className="w-4 h-4" />
+                  <span>ZIP files supported — each folder becomes a QC set</span>
+               </div>
             </div>
          </div>
       )}
@@ -481,21 +698,44 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
       {/* Non-blocking Uploading Indicator */}
       {(isCreatingGroupUpload || uploadingGroupId) && (
          <div className="fixed bottom-6 right-6 z-[60] animate-slide-up">
-            <div className="bg-neutral-900 border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 min-w-[280px]">
-               <div className="relative w-10 h-10 flex-shrink-0">
-                  <div className="absolute inset-0 border-2 border-white/10 rounded-full" />
-                  <div className="absolute inset-0 border-2 border-t-white rounded-full animate-spin" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <FileUp className="w-4 h-4 text-white" />
-                  </div>
+            <div className="bg-neutral-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] overflow-hidden min-w-[320px]">
+               {/* Progress bar at top */}
+               <div className="h-1 bg-white/5 w-full">
+                  <div 
+                     className="h-full bg-white transition-all duration-500 ease-out"
+                     style={{ width: uploadProgress ? `${Math.round((uploadProgress.completed / Math.max(uploadProgress.total, 1)) * 100)}%` : '0%' }}
+                  />
                </div>
-               <div>
-                  <h3 className="text-sm font-bold text-white">
-                    {isCreatingGroupUpload ? "Creating Album..." : "Uploading Photos..."}
-                  </h3>
-                  <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold">
-                    {isCreatingGroupUpload ? "Preparing images" : "In Progress"}
-                  </p>
+               <div className="p-4 flex items-center gap-4">
+                  <div className="relative w-12 h-12 flex-shrink-0">
+                     <div className="absolute inset-0 border-2 border-white/10 rounded-full" />
+                     <div className="absolute inset-0 border-2 border-t-white border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" />
+                     <div className="absolute inset-0 flex items-center justify-center">
+                       <FileUp className="w-5 h-5 text-white" />
+                     </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                     <h3 className="text-sm font-bold text-white">
+                       {isCreatingGroupUpload 
+                         ? (uploadProgress?.currentSet || "Creating QC Set...") 
+                         : "Uploading Photos..."}
+                     </h3>
+                     <div className="flex items-center gap-2 mt-1">
+                        {uploadProgress && uploadProgress.total > 0 ? (
+                          <>
+                            <span className="text-xs text-white font-bold">
+                              {uploadProgress.completed}/{uploadProgress.total} photos
+                            </span>
+                            <span className="text-[10px] text-neutral-500">·</span>
+                            <span className="text-[10px] text-neutral-500 font-medium">
+                              {Math.round((uploadProgress.completed / uploadProgress.total) * 100)}%
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-neutral-500 font-medium">Preparing...</span>
+                        )}
+                     </div>
+                  </div>
                </div>
             </div>
          </div>
@@ -518,7 +758,7 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
                   <div>
                      <h1 className="text-2xl font-bold text-white">QC Photos</h1>
                      <p className="text-text-secondary text-sm flex items-center gap-1">
-                        Managing albums for 
+                        Managing QC sets for 
                         <Link 
                            href={`/admin/products/${id}`} 
                            className="text-white hover:underline underline-offset-4 transition-all inline-flex items-center gap-1 group/link"
@@ -539,7 +779,7 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
                    <FileUp className="w-4 h-4" />
                 </div>
                 <p className="text-sm text-neutral-300">
-                   <span className="font-bold text-white">Tip:</span> Drag & drop a folder or images anywhere on the page to create a new album instantly. You can also paste images (Ctrl+V).
+                   <span className="font-bold text-white">Tip:</span> Drag & drop a folder, images, or a ZIP file anywhere on the page to create new sets instantly. You can also paste images (Ctrl+V).
                  </p>
              </div>
              <div className="flex gap-2">
@@ -548,7 +788,7 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
                    className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-neutral-200 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95"
                 >
                    <Plus className="w-4 h-4" />
-                   Add Album
+                   Add QC Set
                 </button>
              </div>
          </div>
@@ -558,13 +798,13 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
             {groups.length === 0 ? (
                <div className="text-center py-12 bg-neutral-900/40 border border-white/5 rounded-2xl border-dashed">
                   <Folder className="w-8 h-8 text-neutral-600 mx-auto mb-3" />
-                  <p className="text-neutral-400 text-sm font-medium">No QC albums yet.</p>
-                  <p className="text-neutral-600 text-xs mt-2">Drag and drop images here to create one automatically.</p>
+                  <p className="text-neutral-400 text-sm font-medium">No QC sets yet.</p>
+                  <p className="text-neutral-600 text-xs mt-2">Drag and drop images or a ZIP file here to create one automatically.</p>
                   <button 
                      onClick={() => handleAddGroup()}
                      className="mt-4 text-xs text-white underline underline-offset-4 hover:text-neutral-300"
                   >
-                     Create Album
+                     Create QC Set
                   </button>
                </div>
             ) : (
@@ -581,7 +821,7 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
                         <button
                            onClick={() => handleDeleteGroup(group.id)}
                            className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                           title="Delete Group"
+                           title="Delete Set"
                         >
                            <Trash2 className="w-4 h-4" />
                         </button>

@@ -114,7 +114,7 @@ export default function YupooPage() {
             </div>
         ) : (
             <div className="text-center py-20 text-text-muted">
-                No stores found matching "{searchQuery}"
+                No stores found matching {searchQuery}
             </div>
         )}
       </div>

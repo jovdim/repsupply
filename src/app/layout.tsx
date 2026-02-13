@@ -13,7 +13,7 @@ const poetsenOne = Poetsen_One({
 
 export const metadata: Metadata = {
   title: "RepSupply - Reps Refined, Quality Finds",
-  description: "Your trusted source for quality replica products",
+  description: "Source for quality reps products",
 };
 
 export default function RootLayout({

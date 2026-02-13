@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Package, Users, Tags, Star, ImageIcon, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Store } from "lucide-react";
+import { Package, Users, Tags, Star, ImageIcon, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Store, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { getAdminStats, type AdminStats } from "@/lib/supabase/admin";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState({
+  const router = useRouter();
+  const [stats, setStats] = useState<AdminStats>({
     products: 0,
     users: 0,
     categories: 0,
@@ -17,36 +20,22 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchStats() {
+    async function fetchData() {
       const supabase = createClient();
       
       const [
-        { count: productsCount },
-        { count: usersCount },
-        { count: categoriesCount },
-        { count: yupooStoresCount },
-        { count: qcGroupsCount },
+        statsData,
         { data: recent },
       ] = await Promise.all([
-        supabase.from("products").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("categories").select("*", { count: "exact", head: true }),
-        supabase.from("yupoo_stores").select("*", { count: "exact", head: true }),
-        supabase.from("qc_groups").select("*", { count: "exact", head: true }),
+        getAdminStats(),
         supabase.from("products").select("id, name, image, price, is_featured, created_at, qc_groups(count)").order("created_at", { ascending: false }).limit(5),
       ]);
 
-      setStats({
-        products: productsCount || 0,
-        users: usersCount || 0,
-        categories: categoriesCount || 0,
-        yupooStores: yupooStoresCount || 0,
-        qcGroups: qcGroupsCount || 0,
-      });
+      setStats(statsData);
       setRecentProducts(recent || []);
       setLoading(false);
     }
-    fetchStats();
+    fetchData();
   }, []);
 
   if (loading) {
@@ -79,9 +68,18 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-1">Overview</h1>
-        <p className="text-text-secondary text-sm">Welcome back, Admin. Here&apos;s what&apos;s happening.</p>
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={() => router.back()}
+          className="p-2 rounded-xl bg-white/5 border border-white/5 text-neutral-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+          title="Go Back"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-1">Overview</h1>
+          <p className="text-text-secondary text-sm">Welcome back, Admin. Here&apos;s what&apos;s happening.</p>
+        </div>
       </div>
 
       {/* Stat Cards */}

@@ -2,24 +2,20 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, Search, Edit, Trash2, Star, GripVertical, X, Check, Image as ImageIcon, Upload, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { getCategories, invalidateCategoryCache, type CategoryFromDB as Category } from "@/lib/supabase/categories";
+import { invalidateAdminCache } from "@/lib/supabase/admin";
+import { Plus, Search, Settings, Trash2, Star, GripVertical, X, Check, Image as ImageIcon, Upload, Loader2, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
 import Image from "next/image";
-
-interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  image: string;
-  is_featured?: boolean;
-}
+import { useRouter } from "next/navigation";
 
 export default function AdminCategoriesPage() {
+  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form State
   const [name, setName] = useState("");
@@ -36,16 +32,16 @@ export default function AdminCategoriesPage() {
 
   const supabase = createClient();
 
+  async function fetchCategories() {
+    setLoading(true);
+    const data = await getCategories();
+    setCategories(data);
+    setLoading(false);
+  }
+
   useEffect(() => {
     fetchCategories();
   }, []);
-
-  async function fetchCategories() {
-    setLoading(true);
-    const { data } = await supabase.from("categories").select("*").order("name");
-    if (data) setCategories(data);
-    setLoading(false);
-  }
 
   function handleOpenModal(category?: Category) {
     if (category) {
@@ -60,9 +56,10 @@ export default function AdminCategoriesPage() {
       setImage("");
     }
     setIsModalOpen(true);
-    // Reset upload state
+    // Reset upload and delete state
     setUploading(false);
     setIsDragOver(false);
+    setIsDeleting(false);
   }
 
   // Image Upload Logic
@@ -146,6 +143,8 @@ export default function AdminCategoriesPage() {
     }
 
     setIsModalOpen(false);
+    invalidateCategoryCache();
+    invalidateAdminCache();
     fetchCategories();
   }
 
@@ -154,8 +153,9 @@ export default function AdminCategoriesPage() {
     if (error) {
        alert("Error deleting category: " + error.message);
     } else {
+       invalidateCategoryCache();
+       invalidateAdminCache();
        setCategories(prev => prev.filter(c => c.id !== id));
-       setConfirmDeleteId(null);
     }
   }
 
@@ -169,6 +169,8 @@ export default function AdminCategoriesPage() {
     if (error) {
       alert("Error updating category: " + error.message);
     } else {
+      invalidateCategoryCache();
+      invalidateAdminCache();
       setCategories(prev => prev.map(c => 
         c.id === id ? { ...c, is_featured: !currentValue } : c
       ));
@@ -208,15 +210,24 @@ export default function AdminCategoriesPage() {
     <div className="relative">
       <div className="space-y-6 animate-fade-in pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-1">Categories</h1>
-          <p className="text-text-secondary text-sm">
-            {categories.length} categories · {featuredCount} featured on homepage
-          </p>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.back()}
+            className="p-2 rounded-xl bg-white/5 border border-white/5 text-neutral-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+            title="Go Back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-1">Categories</h1>
+            <p className="text-text-secondary text-sm">
+              {categories.length} categories · {featuredCount} featured on homepage
+            </p>
+          </div>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-xl font-bold hover:bg-white/90 transition-all active:scale-95 text-sm"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-white text-black hover:bg-white/90 transition-all active:scale-95 text-sm"
         >
           <Plus className="w-4 h-4" />
           Add Category
@@ -309,19 +320,13 @@ export default function AdminCategoriesPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleOpenModal(cat)}
-                          className="p-2 bg-neutral-800/50 border border-white/5 text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg transition-all active:scale-95"
-                          title="Edit Category"
+                          className="flex items-center gap-2 px-3 py-2 bg-neutral-800/50 border border-white/5 text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg transition-all active:scale-95 group/btn"
+                          title="Manage Category"
                         >
-                          <Edit className="w-3.5 h-3.5" />
+                          <Settings className="w-3.5 h-3.5" />
+                          <span className="text-xs font-bold">Manage</span>
                         </button>
-                          <button
-                            onClick={() => setConfirmDeleteId(cat.id)}
-                            className="p-2 bg-red-500/5 border border-red-500/10 text-red-500/60 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all active:scale-95"
-                            title="Delete Category"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -385,7 +390,7 @@ export default function AdminCategoriesPage() {
       {/* Form Sidebar */}
       <div 
         className={`fixed inset-y-0 right-0 z-[100] w-full max-w-lg bg-neutral-950 border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) transform ${
-          isModalOpen ? "translate-x-0" : "translate-x-full"
+          isModalOpen ? "translate-x-0" : "translate-x-full invisible"
         } flex flex-col h-screen`}
       >
         <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
@@ -498,15 +503,39 @@ export default function AdminCategoriesPage() {
               <button
                 type="submit"
                 disabled={uploading || !name || !slug || !image}
-                className="flex-1 bg-white text-black px-6 py-3.5 rounded-xl text-sm font-bold hover:bg-neutral-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-2"
+                className="flex-[2] bg-white text-black px-6 py-3.5 rounded-xl text-sm font-bold hover:bg-neutral-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <Check className="w-4 h-4" />
                 {editingCategory ? "Save Changes" : "Create Category"}
               </button>
+              
+              {editingCategory && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isDeleting) {
+                      handleDelete(editingCategory.id);
+                      setIsModalOpen(false);
+                    } else {
+                      setIsDeleting(true);
+                    }
+                  }}
+                  className={`flex-1 px-4 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                    isDeleting 
+                      ? "bg-red-500 text-white animate-pulse" 
+                      : "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
+                  }`}
+                  title={isDeleting ? "Confirm Delete" : "Delete Category"}
+                >
+                  {isDeleting ? <Trash2 className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
+                  <span className="truncate">{isDeleting ? "Sure?" : "Delete"}</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-6 py-3.5 rounded-xl text-sm font-medium text-neutral-500 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
+                className="flex-1 px-4 py-3.5 rounded-xl text-sm font-medium text-neutral-500 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
               >
                 Cancel
               </button>
@@ -515,38 +544,6 @@ export default function AdminCategoriesPage() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {confirmDeleteId && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
-            onClick={() => setConfirmDeleteId(null)}
-          />
-          <div className="bg-neutral-900 border border-white/5 rounded-3xl w-full max-w-sm relative z-10 animate-in zoom-in-95 duration-300 shadow-2xl p-8 text-center border-t-red-500/20">
-            <div className="w-20 h-20 rounded-3xl bg-red-500/10 flex items-center justify-center mx-auto mb-6 border border-red-500/10 shadow-[0_0_40px_rgba(239,68,68,0.1)]">
-              <Trash2 className="w-10 h-10 text-red-500" />
-            </div>
-            <h2 className="text-2xl font-black text-white mb-2 tracking-tight uppercase">Delete?</h2>
-            <p className="text-neutral-500 text-sm mb-8 leading-relaxed font-medium px-4">
-              Are you sure you want to delete this category? This action is permanent and may affect linked products.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
-                className="w-full bg-red-500 text-white px-6 py-4 rounded-2xl text-sm font-black hover:bg-red-400 transition-all active:scale-[0.98] shadow-lg shadow-red-500/20"
-              >
-                 DELETE CATEGORY
-              </button>
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="w-full px-6 py-4 rounded-2xl text-sm font-bold text-neutral-500 hover:text-white hover:bg-white/5 transition-all"
-              >
-                 CANCEL
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

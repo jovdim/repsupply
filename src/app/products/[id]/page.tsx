@@ -16,7 +16,9 @@ import {
   ImageIcon,
   Tag,
   Clock,
+  Loader2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { AgentSelector } from "@/components/product/AgentSelector";
@@ -33,6 +35,7 @@ export default function ProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const productId = parseInt(id);
   const { user } = useAuth();
 
@@ -49,6 +52,8 @@ export default function ProductDetailPage({
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [isLightboxLoading, setIsLightboxLoading] = useState(false);
+  const loadingTimerRef = useRef<NodeJS.Timeout>(null);
   const [qcCardIndices, setQcCardIndices] = useState<Record<number, number>>({});
 
   // Fetch product data
@@ -101,6 +106,22 @@ export default function ProductDetailPage({
     }
   };
 
+  // Debounced loading state for lightbox to prevent flickering on cached images
+  useEffect(() => {
+    if (!lightboxImage) return;
+
+    // clear any existing timer
+    if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+
+    // Set a timer to show spinner only if load takes longer than 150ms
+    loadingTimerRef.current = setTimeout(() => {
+        setIsLightboxLoading(true);
+    }, 150);
+
+    return () => {
+        if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+    };
+  }, [lightboxImage]);
 
   // Loading state
   if (loading) {
@@ -192,6 +213,7 @@ export default function ProductDetailPage({
     setLightboxImages(images);
     setLightboxImage(imgSrc);
     setLightboxIndex(idx);
+    setIsLightboxLoading(false);
   };
 
   const navigateLightbox = (dir: "prev" | "next") => {
@@ -201,6 +223,7 @@ export default function ProductDetailPage({
         : (lightboxIndex + 1) % lightboxImages.length;
     setLightboxIndex(newIndex);
     setLightboxImage(lightboxImages[newIndex]);
+    setIsLightboxLoading(false);
   };
 
   return (
@@ -208,13 +231,13 @@ export default function ProductDetailPage({
       {/* Back Navigation */}
       <div className="sticky top-0 z-40 bg-bg-primary/95 backdrop-blur-md border-b border-white/5 md:relative md:bg-transparent md:border-none">
         <div className="max-w-6xl mx-auto px-4 py-3 md:pt-24 md:pb-4">
-          <Link
-            href="/products"
-            className="inline-flex items-center gap-2 text-text-muted hover:text-white transition-colors text-sm font-medium"
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 text-text-muted hover:text-white transition-colors text-sm font-medium cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Marketplace
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -227,7 +250,7 @@ export default function ProductDetailPage({
               src={product.image}
               alt={product.name}
               fill
-              quality={100}
+              quality={90}
               priority={true}
               className="object-cover group-hover:scale-105 transition-transform duration-700"
             />
@@ -367,7 +390,7 @@ export default function ProductDetailPage({
                               src={currentImage}
                               alt={`${group.folder} photo ${currentIndex + 1}`}
                               fill
-                              quality={100}
+                              quality={85}
                               className="object-cover"
                           />
                           
@@ -439,7 +462,7 @@ export default function ProductDetailPage({
                       src={p.image}
                       alt={p.name}
                       fill
-                      quality={100}
+                      quality={85}
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
@@ -498,15 +521,48 @@ export default function ProductDetailPage({
 
           {/* Image */}
           <div
-            className="relative w-[90vw] h-[80vh] max-w-4xl"
+            className="relative w-[90vw] h-[80vh] max-w-4xl flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
+            {isLightboxLoading && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                    <Loader2 className="w-10 h-10 text-white animate-spin" />
+                </div>
+            )}
             <Image
               src={lightboxImage}
               alt="QC Photo"
               fill
-              className="object-contain"
+              className={`object-contain transition-opacity duration-300 ${isLightboxLoading ? 'opacity-0' : 'opacity-100'}`}
+              quality={90}
+              priority={true}
+              onLoad={() => {
+                  if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+                  setIsLightboxLoading(false);
+              }}
             />
+          </div>
+
+          {/* Preload Next/Prev Images */}
+          <div className="hidden">
+            {lightboxImages.length > 1 && (
+                <>
+                    <Image 
+                        src={lightboxImages[(lightboxIndex + 1) % lightboxImages.length]} 
+                        alt="preload next" 
+                        width={1} 
+                        height={1} 
+                        priority={true} 
+                    />
+                    <Image 
+                        src={lightboxImages[(lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length]} 
+                        alt="preload prev" 
+                        width={1} 
+                        height={1} 
+                        priority={true} 
+                    />
+                </>
+            )}
           </div>
 
           {/* Counter */}

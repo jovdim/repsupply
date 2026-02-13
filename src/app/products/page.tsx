@@ -29,8 +29,12 @@ function ProductsContent() {
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const initialCategory = searchParams.get("category") || "All";
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const initialFilter = (searchParams.get("filter") as FilterType) || "all";
+  const [activeFilter, setActiveFilter] = useState<FilterType>(
+    ["all", "featured", "best_seller"].includes(initialFilter) ? initialFilter : "all"
+  );
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [gridCols, setGridCols] = useState<4 | 5>(5);
   const [mobileGridCols, setMobileGridCols] = useState<2 | 3>(3);
@@ -45,11 +49,15 @@ function ProductsContent() {
   useEffect(() => {
     const catParam = searchParams.get("category");
     const filterParam = searchParams.get("filter") as FilterType | null;
-    if (catParam) setSelectedCategory(catParam);
-    if (filterParam && ["all", "featured", "best_seller"].includes(filterParam)) {
+    if (catParam && catParam !== selectedCategory) setSelectedCategory(catParam);
+    if (
+      filterParam &&
+      filterParam !== activeFilter &&
+      ["all", "featured", "best_seller"].includes(filterParam)
+    ) {
       setActiveFilter(filterParam);
     }
-  }, [searchParams]);
+  }, [searchParams, selectedCategory, activeFilter]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);

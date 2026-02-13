@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { invalidateYupooCache } from "@/lib/supabase/yupoo";
-import { Plus, Search, Edit, Trash2, ExternalLink, X, Image as ImageIcon, Loader2, Save, ChevronLeft, ChevronRight } from "lucide-react";
+import { invalidateYupooCache, getYupooStores } from "@/lib/supabase/yupoo";
+import { Plus, Search, Settings, Trash2, ExternalLink, X, Image as ImageIcon, Loader2, Save, ChevronLeft, ChevronRight, Check, Upload } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
 interface YupooStore {
   id: number;
@@ -15,12 +17,13 @@ interface YupooStore {
 }
 
 export default function AdminYupooStoresPage() {
+  const router = useRouter();
   const [stores, setStores] = useState<YupooStore[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<YupooStore | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form State
   const [name, setName] = useState("");
@@ -34,16 +37,16 @@ export default function AdminYupooStoresPage() {
 
   const supabase = createClient();
 
+  async function fetchStores() {
+    setLoading(true);
+    const data = await getYupooStores();
+    setStores(data);
+    setLoading(false);
+  }
+
   useEffect(() => {
     fetchStores();
   }, []);
-
-  async function fetchStores() {
-    setLoading(true);
-    const { data } = await supabase.from("yupoo_stores").select("*").order("name");
-    if (data) setStores(data);
-    setLoading(false);
-  }
 
   function handleOpenModal(store?: YupooStore) {
     if (store) {
@@ -60,6 +63,7 @@ export default function AdminYupooStoresPage() {
     setIsModalOpen(true);
     setUploading(false);
     setIsDragOver(false);
+    setIsDeleting(false);
   }
 
   // Image Upload Logic
@@ -149,13 +153,33 @@ export default function AdminYupooStoresPage() {
   }
 
   async function handleDelete(id: number) {
-    const { error } = await supabase.from("yupoo_stores").delete().eq("id", id);
-    if (error) {
-       alert("Error deleting store: " + error.message);
-    } else {
-       setStores(prev => prev.filter(s => s.id !== id));
-       setConfirmDeleteId(null);
-       invalidateYupooCache();
+    try {
+      // 1. Get store image URL
+      const storeToDelete = stores.find(s => s.id === id);
+      if (storeToDelete?.image) {
+        const fileName = storeToDelete.image.split("/").pop();
+        if (fileName) {
+          const { error: storageError } = await supabase.storage
+            .from("product-images")
+            .remove([fileName]);
+          
+          if (storageError) {
+            console.error("Error cleaning up storage:", storageError);
+          }
+        }
+      }
+
+      // 2. Delete the record
+      const { error } = await supabase.from("yupoo_stores").delete().eq("id", id);
+      if (error) {
+        alert("Error deleting store: " + error.message);
+      } else {
+        setStores(prev => prev.filter(s => s.id !== id));
+        invalidateYupooCache();
+      }
+    } catch (err) {
+      console.error("Delete process error:", err);
+      alert("An unexpected error occurred during deletion.");
     }
   }
 
@@ -178,13 +202,23 @@ export default function AdminYupooStoresPage() {
   }, [searchQuery]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="relative">
+      <div className="space-y-6 animate-fade-in pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-1">Yupoo Stores</h1>
-          <p className="text-text-secondary text-sm">
-            {stores.length} verified sellers
-          </p>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.back()}
+            className="p-2 rounded-xl bg-white/5 border border-white/5 text-neutral-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+            title="Go Back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-1">Yupoo Stores</h1>
+            <p className="text-text-secondary text-sm">
+              {stores.length} verified sellers
+            </p>
+          </div>
         </div>
         <button
           onClick={() => handleOpenModal()}
@@ -268,43 +302,12 @@ export default function AdminYupooStoresPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleOpenModal(store)}
-                          className="p-2 bg-neutral-800/50 border border-white/5 text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg transition-all active:scale-95"
-                          title="Edit Store"
+                          className="flex items-center gap-2 px-3 py-2 bg-neutral-800/50 border border-white/5 text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg transition-all active:scale-95 group/btn"
+                          title="Manage Store"
                         >
-                          <Edit className="w-3.5 h-3.5" />
+                          <Settings className="w-3.5 h-3.5" />
+                          <span className="text-xs font-bold">Manage</span>
                         </button>
-                        <div className="relative">
-                          <button
-                            onClick={() => setConfirmDeleteId(confirmDeleteId === store.id ? null : store.id)}
-                            className={`p-2 rounded-lg transition-all active:scale-95 border ${
-                              confirmDeleteId === store.id
-                                ? "bg-red-500 border-red-500 text-white"
-                                : "bg-red-500/5 border-red-500/10 text-red-500/60 hover:text-red-400 hover:bg-red-500/10"
-                            }`}
-                            title="Delete Store"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                          {confirmDeleteId === store.id && (
-                            <div className="absolute right-0 top-full mt-2 w-40 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
-                              <div className="px-4 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-widest border-b border-white/5 mb-1">
-                                Confirm Delete?
-                              </div>
-                              <button
-                                onClick={() => handleDelete(store.id)}
-                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors font-semibold"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" /> Yes, Delete
-                              </button>
-                              <button
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-neutral-400 hover:bg-white/5 transition-colors"
-                              >
-                                <X className="w-3.5 h-3.5" /> Cancel
-                              </button>
-                            </div>
-                          )}
-                        </div>
                       </div>
                     </td>
                   </tr>
@@ -365,61 +368,71 @@ export default function AdminYupooStoresPage() {
         )}
       </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onPaste={handlePaste}>
-          <div className="bg-neutral-900 border border-white/10 rounded-2xl p-6 max-w-md w-full animate-scale-in">
-             <div className="flex items-center justify-between mb-6">
-               <h2 className="text-xl font-bold text-white">
-                 {editingStore ? "Edit Store" : "New Store"}
-               </h2>
-               <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-1 hover:bg-white/10 rounded-lg text-neutral-400 hover:text-white transition-colors"
-               >
-                  <X className="w-5 h-5" />
-               </button>
-             </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
+      </div>
+
+      {/* Form Sidebar */}
+      <div 
+        className={`fixed inset-y-0 right-0 z-[100] w-full max-w-lg bg-neutral-950 border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) transform ${
+          isModalOpen ? "translate-x-0" : "translate-x-full invisible"
+        } flex flex-col h-screen`}
+      >
+        <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-tight">
+                {editingStore ? "Update Store" : "New Store"}
+              </h2>
+              <p className="text-xs text-neutral-500 mt-1">
+                {editingStore ? "Editing store details" : "Create a new verified seller"}
+              </p>
+            </div>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="p-2 hover:bg-white/5 rounded-xl text-neutral-500 hover:text-white transition-all active:scale-95 border border-white/5"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text-secondary">Store Name</label>
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Store Name <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none"
+                  className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700"
                   placeholder="e.g. TopShoeFactory"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text-secondary">Yupoo Link</label>
-                <div className="flex items-center gap-2 bg-black/20 border border-white/10 rounded-lg px-3 focus-within:border-white/30 transition-colors">
-                   <ExternalLink className="w-4 h-4 text-neutral-500" />
-                   <input
-                     type="url"
-                     required
-                     value={link}
-                     onChange={(e) => setLink(e.target.value)}
-                     className="flex-1 bg-transparent py-3 text-white outline-none placeholder:text-neutral-600"
-                     placeholder="https://..."
-                   />
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Yupoo Link <span className="text-red-500">*</span></label>
+                <div className="relative group/input">
+                  <ExternalLink className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within/input:text-white transition-colors" />
+                  <input
+                    type="url"
+                    required
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                    className="w-full bg-neutral-900/50 border border-white/5 rounded-xl py-3.5 pl-11 pr-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700 font-mono"
+                    placeholder="https://..."
+                  />
                 </div>
               </div>
               
-              {/* Image Upload */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text-secondary">Store Image</label>
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Store Media <span className="text-red-500">*</span></label>
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                  className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 group overflow-hidden ${
                     isDragOver 
                       ? "border-white/40 bg-white/5" 
-                      : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]"
+                      : "border-white/5 bg-neutral-900/30 hover:border-white/10 hover:bg-neutral-900/50"
                   }`}
                 >
                    <input
@@ -433,57 +446,89 @@ export default function AdminYupooStoresPage() {
                      }}
                    />
                    
-                   {uploading ? (
-                      <div className="flex flex-col items-center gap-2">
-                         <Loader2 className="w-6 h-6 animate-spin text-white" />
-                         <span className="text-xs text-neutral-400">Uploading...</span>
-                      </div>
-                   ) : image ? (
-                      <div className="flex items-center gap-3">
-                         <div className="w-12 h-12 rounded-lg bg-neutral-800 relative overflow-hidden flex-shrink-0 border border-white/10">
-                            <Image src={image} alt="Preview" fill className="object-cover" />
+                   <div className="aspect-video flex items-center justify-center">
+                      {uploading ? (
+                         <div className="flex flex-col items-center gap-3">
+                            <Loader2 className="w-8 h-8 animate-spin text-white opacity-40" />
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Uploading...</span>
                          </div>
-                         <div className="flex-1 text-left min-w-0">
-                            <p className="text-xs font-medium text-white truncate max-w-[200px]">{image.split('/').pop()}</p>
-                            <p className="text-[10px] text-neutral-500">Click to replace</p>
+                      ) : image ? (
+                         <div className="absolute inset-0 p-3">
+                            <div className="relative w-full h-full rounded-xl overflow-hidden group/img shadow-2xl">
+                               <Image src={image} alt="Preview" fill className="object-cover transition-transform duration-700 group-hover/img:scale-110" />
+                               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                  <div className="text-center transform translate-y-2 group-hover/img:translate-y-0 transition-transform duration-300">
+                                     <ImageIcon className="w-6 h-6 text-white mx-auto mb-2 opacity-80" />
+                                     <p className="text-[10px] font-bold text-white uppercase tracking-widest">Replace Media</p>
+                                  </div>
+                               </div>
+                               <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setImage(""); }}
+                                  className="absolute top-3 right-3 p-1.5 bg-black/50 hover:bg-red-500 text-white rounded-lg transition-colors backdrop-blur-md z-10"
+                               >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
                          </div>
-                         <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setImage(""); }}
-                            className="p-1 hover:bg-white/10 rounded text-neutral-400 hover:text-white"
-                         >
-                            <X className="w-4 h-4" />
-                         </button>
-                      </div>
-                   ) : (
-                      <div className="flex flex-col items-center gap-2">
-                         <ImageIcon className="w-6 h-6 text-neutral-600" />
-                         <span className="text-xs text-neutral-400">Drop image here or click to upload</span>
-                      </div>
-                   )}
+                      ) : (
+                         <div className="text-center p-8">
+                            <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-white/10 transition-all duration-300 shadow-inner">
+                              <Upload className="w-6 h-6 text-neutral-600 group-hover:text-neutral-400 transition-colors" />
+                            </div>
+                            <p className="text-xs font-semibold text-neutral-400">Click or drop to upload</p>
+                            <p className="text-[9px] text-neutral-600 mt-2 uppercase tracking-widest font-bold">PNG, JPG, WEBP • MAX 5MB</p>
+                         </div>
+                      )}
+                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="flex gap-3 pt-4">
+            <div className="flex items-center gap-3 pt-6 border-t border-white/5">
+              <button
+                type="submit"
+                disabled={uploading || !name || !link}
+                className="flex-[2] bg-white text-black px-6 py-3.5 rounded-xl text-sm font-bold hover:bg-neutral-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                {editingStore ? "Save Changes" : "Create Store"}
+              </button>
+              
+              {editingStore && (
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white transition-colors"
+                  onClick={() => {
+                    if (isDeleting && editingStore) {
+                      handleDelete(editingStore.id);
+                      setIsModalOpen(false);
+                    } else {
+                      setIsDeleting(true);
+                    }
+                  }}
+                  className={`flex-1 px-4 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                    isDeleting 
+                      ? "bg-red-500 text-white animate-pulse" 
+                      : "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
+                  }`}
+                  title={isDeleting ? "Confirm Delete" : "Delete Store"}
                 >
-                  Cancel
+                  <Trash2 className="w-4 h-4" />
+                  <span className="truncate">{isDeleting ? "Sure?" : "Delete"}</span>
                 </button>
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="flex-1 bg-white text-black px-4 py-2 rounded-lg text-sm font-bold hover:bg-white/90 transition-colors disabled:opacity-50"
-                >
-                  {editingStore ? "Update" : "Create"}
-                </button>
-              </div>
-            </form>
-          </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 px-4 py-3.5 rounded-xl text-sm font-medium text-neutral-500 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </div>
     </div>
   );
 }

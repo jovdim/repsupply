@@ -1,0 +1,362 @@
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\categories\page.tsx
+    7:42  warning  'Star' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+    7:48  warning  'GripVertical' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   36:5   error    Error: Cannot access variable before it is declared
+
+`fetchCategories` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\categories\page.tsx:36:5
+  34 |
+  35 |   useEffect(() => {
+> 36 |     fetchCategories();
+     |     ^^^^^^^^^^^^^^^ `fetchCategories` accessed before it is declared
+  37 |   }, []);
+  38 |
+  39 |   async function fetchCategories() {
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\categories\page.tsx:39:3
+  37 |   }, []);
+  38 |
+> 39 |   async function fetchCategories() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 40 |     setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 41 |     const data = await getCategories();
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 42 |     setCategories(data);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 43 |     setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 44 |   }
+     | ^^^^ `fetchCategories` is declared here
+  45 |
+  46 |   function handleOpenModal(category?: Category) {
+  47 |     if (category) {  react-hooks/immutability
+  112:6   warning  React Hook useCallback has a missing dependency: 'handleImageUpload'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  115:9   warning  'handlePaste' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  125:6   warning  React Hook useCallback has a missing dependency: 'handleImageUpload'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\layout.tsx
+  11:3  warning  'Settings' is defined but never used  @typescript-eslint/no-unused-vars
+  14:3  warning  'X' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\page.tsx
+    4:32  warning  'Star' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+    4:49  warning  'TrendingUp' is defined but never used                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+    4:82  warning  'ArrowDownRight' is defined but never used                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+   19:56  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  178:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\products\[id]\page.tsx
+   88:60  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  131:13  warning  'data' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  161:34  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `handleImageUpload`, but the source dependencies were [id]. Inferred different dependency than source.
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\products\[id]\page.tsx:161:34
+  159 |   }, []);
+  160 |
+> 161 |   const handleDrop = useCallback((e: React.DragEvent) => {
+      |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 162 |     e.preventDefault();
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 163 |     setIsDragOver(false);
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 164 |     const file = e.dataTransfer.files[0];
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 165 |     if (file) handleImageUpload(file);
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 166 |   }, [id]);
+      | ^^^^ Could not preserve existing manual memoization
+  167 |
+  168 |   // Paste handler
+  169 |   const handlePaste = useCallback((e: React.ClipboardEvent) => {  react-hooks/preserve-manual-memoization
+  166:6   warning  React Hook useCallback has a missing dependency: 'handleImageUpload'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  169:35  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `handleImageUpload`, but the source dependencies were [id]. Inferred different dependency than source.
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\products\[id]\page.tsx:169:35
+  167 |
+  168 |   // Paste handler
+> 169 |   const handlePaste = useCallback((e: React.ClipboardEvent) => {
+      |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 170 |     const items = e.clipboardData.items;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 171 |     for (let i = 0; i < items.length; i++) {
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 178 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 179 |   }, [id]);
+      | ^^^^ Could not preserve existing manual memoization
+  180 |
+  181 |   // Link conversion on change
+  182 |   function handleLinkChange(value: string) {         react-hooks/preserve-manual-memoization
+  179:6   warning  React Hook useCallback has a missing dependency: 'handleImageUpload'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\products\new\page.tsx
+   6:47  warning  'ImageIcon' is defined but never used      @typescript-eslint/no-unused-vars
+  76:13  warning  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\products\page.tsx
+    6:10  warning  'getProducts' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+    6:41  warning  'ProductFromDB' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+   21:3   warning  'SlidersHorizontal' is defined but never used                                                                           @typescript-eslint/no-unused-vars
+  121:7   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free     @typescript-eslint/ban-ts-comment
+  148:33  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  201:58  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  259:13  warning  'data' is assigned a value but never used                                                                               @typescript-eslint/no-unused-vars
+  293:6   warning  React Hook useCallback has a missing dependency: 'handleImageUpload'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  449:17  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  450:17  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\profile\page.tsx
+  6:8  warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\qc-images\[id]\page.tsx
+    8:27  warning  'X' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+    8:74  warning  'Save' is defined but never used                                                                              @typescript-eslint/no-unused-vars
+    8:80  warning  'Check' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+   48:9   warning  'fileInputRef' is assigned a value but never used                                                             @typescript-eslint/no-unused-vars
+   54:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  253:60  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  318:19  warning  'folderName' is assigned a value but never used                                                               @typescript-eslint/no-unused-vars
+  359:50  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  408:52  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  520:61  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  560:37  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  572:26  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  588:20  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\qc-images\page.tsx
+   4:10  warning  'createClient' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   5:35  warning  'ImageIcon' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+  29:5   error    Error: Cannot access variable before it is declared
+
+`fetchProducts` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\qc-images\page.tsx:29:5
+  27 |
+  28 |   useEffect(() => {
+> 29 |     fetchProducts();
+     |     ^^^^^^^^^^^^^ `fetchProducts` accessed before it is declared
+  30 |   }, []);
+  31 |
+  32 |   async function fetchProducts() {
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\qc-images\page.tsx:32:3
+  30 |   }, []);
+  31 |
+> 32 |   async function fetchProducts() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 33 |     setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 34 |     const data = await getAdminProducts();
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 35 |     setProducts(data);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 36 |     setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 37 |   }
+     | ^^^^ `fetchProducts` is declared here
+  38 |
+  39 |   const filteredProducts = products.filter((product) =>
+  40 |     product.name.toLowerCase().includes(search.toLowerCase())  react-hooks/immutability
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\users\page.tsx
+  25:5  error  Error: Cannot access variable before it is declared
+
+`fetchUsers` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\users\page.tsx:25:5
+  23 |
+  24 |   useEffect(() => {
+> 25 |     fetchUsers();
+     |     ^^^^^^^^^^ `fetchUsers` accessed before it is declared
+  26 |   }, []);
+  27 |
+  28 |   async function fetchUsers() {
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\users\page.tsx:28:3
+  26 |   }, []);
+  27 |
+> 28 |   async function fetchUsers() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 29 |     setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 30 |     const data = await getAdminProfiles();
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 31 |     setProfiles(data);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 32 |     setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 33 |   }
+     | ^^^^ `fetchUsers` is declared here
+  34 |
+  35 |   async function handleDelete(id: string) {
+  36 |     const { error } = await supabase.from("profiles").delete().eq("id", id);  react-hooks/immutability
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\yupoo-stores\page.tsx
+    6:88  warning  'Save' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+    8:8   warning  'Link' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   41:5   error    Error: Cannot access variable before it is declared
+
+`fetchStores` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\yupoo-stores\page.tsx:41:5
+  39 |
+  40 |   useEffect(() => {
+> 41 |     fetchStores();
+     |     ^^^^^^^^^^^ `fetchStores` accessed before it is declared
+  42 |   }, []);
+  43 |
+  44 |   async function fetchStores() {
+
+C:\Users\lorem\Desktop\repsupply\src\app\admin\yupoo-stores\page.tsx:44:3
+  42 |   }, []);
+  43 |
+> 44 |   async function fetchStores() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 45 |     setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 46 |     const data = await getYupooStores();
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 47 |     setStores(data);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 48 |     setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 49 |   }
+     | ^^^^ `fetchStores` is declared here
+  50 |
+  51 |   function handleOpenModal(store?: YupooStore) {
+  52 |     if (store) {  react-hooks/immutability
+  116:6   warning  React Hook useCallback has a missing dependency: 'handleImageUpload'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+  118:9   warning  'handlePaste' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  128:6   warning  React Hook useCallback has a missing dependency: 'handleImageUpload'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+
+C:\Users\lorem\Desktop\repsupply\src\app\page.tsx
+    4:3   warning  'Flame' is defined but never used                                @typescript-eslint/no-unused-vars
+    7:3   warning  'Truck' is defined but never used                                @typescript-eslint/no-unused-vars
+    8:3   warning  'CheckCircle' is defined but never used                          @typescript-eslint/no-unused-vars
+   20:10  warning  'createClient' is defined but never used                         @typescript-eslint/no-unused-vars
+  245:46  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  245:60  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  251:71  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  251:85  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  632:28  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\lorem\Desktop\repsupply\src\app\privacy\page.tsx
+  13:145  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  13:157  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\lorem\Desktop\repsupply\src\app\products\[id]\page.tsx
+    8:3  warning  'Copy' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   13:3  warning  'ChevronDown' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   18:3  warning  'Clock' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  114:5  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\lorem\Desktop\repsupply\src\app\products\[id]\page.tsx:114:5
+  112 |
+  113 |     // Reset loading state initially (assume cached/fast)
+> 114 |     setIsLightboxLoading(false);
+      |     ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  115 |
+  116 |     // clear any existing timer
+  117 |     if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);  react-hooks/set-state-in-effect
+
+C:\Users\lorem\Desktop\repsupply\src\app\products\page.tsx
+    3:39  warning  'useCallback' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   19:10  warning  'Footer' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   48:19  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\lorem\Desktop\repsupply\src\app\products\page.tsx:48:19
+  46 |     const catParam = searchParams.get("category");
+  47 |     const filterParam = searchParams.get("filter") as FilterType | null;
+> 48 |     if (catParam) setSelectedCategory(catParam);
+     |                   ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  49 |     if (filterParam && ["all", "featured", "best_seller"].includes(filterParam)) {
+  50 |       setActiveFilter(filterParam);
+  51 |     }  react-hooks/set-state-in-effect
+   68:11  error    'catNames' is never reassigned. Use 'const' instead                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      prefer-const
+  120:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\lorem\Desktop\repsupply\src\app\products\page.tsx:120:5
+  118 |     }
+  119 |
+> 120 |     setProducts(filtered);
+      |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  121 |   }, [searchQuery, selectedCategory, activeFilter, allProducts]);
+  122 |
+  123 |   // Apply grid limits for Featured/Best Sellers                                                                                                                                                                       react-hooks/set-state-in-effect
+  171:58  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Users\lorem\Desktop\repsupply\src\app\profile\page.tsx
+  13:3   warning  'User' is defined but never used          @typescript-eslint/no-unused-vars
+  42:48  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  43:52  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\lorem\Desktop\repsupply\src\app\signup\page.tsx
+  21:9  warning  'router' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\lorem\Desktop\repsupply\src\components\AuthProvider.tsx
+  47:6  warning  React Hook useEffect has a missing dependency: 'supabase.auth'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\lorem\Desktop\repsupply\src\components\desktop\Navbar.tsx
+  12:3  warning  'LogIn' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\lorem\Desktop\repsupply\src\components\product\AgentSelector.tsx
+  6:10  warning  'Button' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\lorem\Desktop\repsupply\src\lib\cache.ts
+  18:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\lorem\Desktop\repsupply\src\lib\supabase\favorites.ts
+  57:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\lorem\Desktop\repsupply\src\lib\supabase\history.ts
+  32:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  65:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  72:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\lorem\Desktop\repsupply\src\lib\supabase\products.ts
+   20:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   34:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  151:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  155:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  155:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  157:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  157:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  176:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\lorem\Desktop\repsupply\src\lib\supabase\profiles.ts
+  35:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 102 problems (53 errors, 49 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

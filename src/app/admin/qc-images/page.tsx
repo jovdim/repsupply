@@ -2,18 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Search, Folder, Image as ImageIcon, ChevronRight, ChevronLeft, X } from "lucide-react";
+import { Search, Folder, Image as ImageIcon, ChevronRight, ChevronLeft, X, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { getAdminProducts } from "@/lib/supabase/products";
 
 interface Product {
   id: number;
   name: string;
   image: string;
-  qc_groups: { count: number }[]; // Keeping property names as from DB but changing UI
+  qc_groups: { count: number }[];
 }
 
 export default function AdminQcImagesPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -22,26 +25,16 @@ export default function AdminQcImagesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
+  async function fetchProducts() {
+    setLoading(true);
+    const data = await getAdminProducts();
+    setProducts(data);
+    setLoading(false);
+  }
+
   useEffect(() => {
     fetchProducts();
   }, []);
-
-  async function fetchProducts() {
-    setLoading(true);
-    const supabase = createClient();
-    
-    const { data, error } = await supabase
-      .from("products")
-      .select("*, qc_groups(count)")
-      .order("id", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching products:", error);
-    } else {
-      setProducts(data || []);
-    }
-    setLoading(false);
-  }
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(search.toLowerCase())
@@ -60,11 +53,20 @@ export default function AdminQcImagesPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-1">QC Images</h1>
-        <p className="text-text-secondary text-sm">
-          {products.length} products · Manage QC photos for products
-        </p>
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={() => router.back()}
+          className="p-2 rounded-xl bg-white/5 border border-white/5 text-neutral-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+          title="Go Back"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-1">QC Images</h1>
+          <p className="text-text-secondary text-sm">
+            {products.length} products · Manage QC photos for products
+          </p>
+        </div>
       </div>
 
       {/* Search */}
@@ -106,7 +108,7 @@ export default function AdminQcImagesPage() {
               <thead className="bg-white/[0.02] text-neutral-500 uppercase text-[10px] font-bold tracking-widest border-b border-white/5">
                 <tr>
                   <th className="px-6 py-4">Product</th>
-                  <th className="px-6 py-4">QC Albums</th>
+                  <th className="px-6 py-4">QC Sets</th>
                   <th className="px-6 py-4 text-right">Action</th>
                 </tr>
               </thead>
@@ -127,7 +129,7 @@ export default function AdminQcImagesPage() {
                         className="flex items-center gap-1.5 text-neutral-400 text-sm hover:text-white transition-colors group/count"
                       >
                         <Folder className="w-3.5 h-3.5 group-hover/count:scale-110 transition-transform" />
-                        {product.qc_groups[0]?.count || 0} albums
+                        {product.qc_groups[0]?.count || 0} sets
                       </Link>
                     </td>
                     <td className="px-6 py-4 text-right">

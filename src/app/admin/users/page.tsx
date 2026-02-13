@@ -2,18 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Search, Calendar, Heart, Trash2, X, ChevronLeft, ChevronRight, Loader2, User as UserIcon } from "lucide-react";
+import { getAdminProfiles, invalidateProfileCache, type ProfileFromDB as Profile } from "@/lib/supabase/profiles";
+import { invalidateAdminCache } from "@/lib/supabase/admin";
+import { Search, Calendar, Heart, Trash2, X, ChevronLeft, ChevronRight, Loader2, User as UserIcon, ArrowLeft } from "lucide-react";
 import Image from "next/image";
-
-interface Profile {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  created_at: string;
-  favorites_count?: number;
-}
+import { useRouter } from "next/navigation";
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -25,61 +21,24 @@ export default function AdminUsersPage() {
 
   const supabase = createClient();
 
+  async function fetchUsers() {
+    setLoading(true);
+    const data = await getAdminProfiles();
+    setProfiles(data);
+    setLoading(false);
+  }
+
   useEffect(() => {
     fetchUsers();
   }, []);
-
-  async function fetchUsers() {
-    setLoading(true);
-    
-    // First fetch profiles
-    const { data: profilesData, error: profilesError } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (profilesError) {
-      console.error("Error fetching profiles:", profilesError);
-      setLoading(false);
-      return;
-    }
-
-    // Then fetch favorite counts for each profile
-    // Note: Doing this properly might require an RPC or a join if relationships are set up validly.
-    // For now, we'll try to join or just fetch counts for the visible page if array is small, 
-    // but to keep it simple and robust, let's try to fetch all favorites and map them, or just fetch on demand?
-    // Let's try to select with count if the relationship exists.
-    // If not, we will fetch all favorites (assuming not millions) and aggregate.
-    
-    // Attempt with select count (this assumes a relationship exists between profiles and favorites)
-    const { data: profilesWithCount, error: joinError } = await supabase
-      .from("profiles")
-      .select("*, favorites(count)")
-      .order("created_at", { ascending: false });
-
-    if (!joinError && profilesWithCount) {
-        // Transform
-        const formatted = profilesWithCount.map((p: any) => ({
-            ...p,
-            favorites_count: p.favorites?.[0]?.count || 0
-        }));
-        setProfiles(formatted);
-    } else {
-        // Fallback: fetch profiles then just map 0 for now to avoid breaking, 
-        // or we could fetch favorite counts individually for the current page.
-        // Let's just use the basic profiles and 0 if join fails.
-        console.log("Join failed or not supported, showing 0 counts", joinError);
-        setProfiles(profilesData || []);
-    }
-
-    setLoading(false);
-  }
 
   async function handleDelete(id: string) {
     const { error } = await supabase.from("profiles").delete().eq("id", id);
     if (error) {
       alert("Error deleting user: " + error.message);
     } else {
+      invalidateProfileCache();
+      invalidateAdminCache();
       setProfiles(prev => prev.filter(p => p.id !== id));
       setDeleteId(null);
     }
@@ -103,11 +62,20 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-1">Users</h1>
-        <p className="text-neutral-400 text-sm">
-          {profiles.length} registered users · Manage user access
-        </p>
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={() => router.back()}
+          className="p-2 rounded-xl bg-white/5 border border-white/5 text-neutral-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+          title="Go Back"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-1">Users</h1>
+          <p className="text-neutral-400 text-sm">
+            {profiles.length} registered users · Manage user access
+          </p>
+        </div>
       </div>
 
       {/* Search */}
