@@ -461,9 +461,6 @@ function ProductsContent() {
                 >
                     {/* Image */}
                     <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
-                    <div className="text-neutral-600 text-xs font-medium">
-                        Product Image
-                    </div>
                     <Image
                         src={product.image}
                         alt={product.name}

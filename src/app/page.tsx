@@ -347,9 +347,6 @@ export default function Home() {
               className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
             >
               <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
-                <div className="text-neutral-600 text-xs font-medium">
-                  Product Image
-                </div>
                 <Image
                   src={product.image}
                   alt={product.name}
@@ -516,9 +513,6 @@ export default function Home() {
               className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
             >
               <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
-                <div className="text-neutral-600 text-xs font-medium">
-                  Product Image
-                </div>
                 <Image
                   src={product.image}
                   alt={product.name}
