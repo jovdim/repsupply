@@ -224,7 +224,7 @@ export default function ProfilePage() {
                   {savedItems.map((item) => (
                     <Link
                       key={item.id}
-                      href={`/products/${item.id}`}
+                      href={`/products/${item.slug}`}
                       className="bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all group cursor-pointer"
                     >
                       <div className="relative aspect-square bg-neutral-900">
@@ -290,7 +290,7 @@ export default function ProfilePage() {
                   {historyItems.map((item, idx) => (
                     <Link
                       key={`${item.id}-${idx}`}
-                      href={`/products/${item.id}`}
+                      href={`/products/${item.slug}`}
                       className="bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all group cursor-pointer relative"
                     >
                       <div className="relative aspect-square bg-neutral-900">

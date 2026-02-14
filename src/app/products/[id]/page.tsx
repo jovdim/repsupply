@@ -34,9 +34,8 @@ export default function ProductDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
+  const { id: idOrSlug } = use(params);
   const router = useRouter();
-  const productId = parseInt(id);
   const { user } = useAuth();
 
   const [product, setProduct] = useState<ProductFromDB | null>(null);
@@ -61,7 +60,7 @@ export default function ProductDetailPage({
     async function fetchData() {
       setLoading(true);
       const [prod, prods] = await Promise.all([
-        getProductById(productId),
+        getProductById(idOrSlug),
         getAllProductsLight(),
       ]);
       setProduct(prod);
@@ -69,7 +68,7 @@ export default function ProductDetailPage({
       setLoading(false);
     }
     fetchData();
-  }, [productId]);
+  }, [idOrSlug]);
 
   // Check favorite status and record view
   useEffect(() => {
@@ -454,7 +453,7 @@ export default function ProductDetailPage({
               {recommended.map((p) => (
                 <Link
                   key={p.id}
-                  href={`/products/${p.id}`}
+                  href={`/products/${p.slug}`}
                   className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
                 >
                   <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900">

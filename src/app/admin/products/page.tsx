@@ -43,6 +43,7 @@ interface Category {
 
 interface Product {
   id: number;
+  slug: string;
   name: string;
   price: string;
   image: string;
@@ -75,6 +76,7 @@ export default function AdminProductsPage() {
 
   // Form State
   const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
   const [price, setPrice] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
@@ -190,10 +192,11 @@ export default function AdminProductsPage() {
     if (product) {
       setEditingProduct(product);
       setName(product.name);
+      setSlug(product.slug || "");
       setPrice(product.price);
       setImage(product.image);
       setLink(product.link || "");
-      setDescription(product.description || "");
+      description ? setDescription(product.description || "") : setDescription("");
       setIsFeatured(product.is_featured);
       setIsBestSeller(product.is_best_seller || false);
       
@@ -220,6 +223,7 @@ export default function AdminProductsPage() {
     } else {
       setEditingProduct(null);
       setName("");
+      setSlug("");
       setPrice("");
       setImage("");
       setLink("");
@@ -318,6 +322,17 @@ export default function AdminProductsPage() {
     }
   }
 
+  function handleNameChange(value: string) {
+    setName(value);
+    if (!editingProduct) {
+      const generatedSlug = value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+      setSlug(generatedSlug);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -330,6 +345,7 @@ export default function AdminProductsPage() {
     
     const productData = {
       name,
+      slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
       price,
       image,
       link,
@@ -872,9 +888,20 @@ export default function AdminProductsPage() {
                     type="text"
                     required
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => handleNameChange(e.target.value)}
                     className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700"
                     placeholder="e.g. Jordan 4 Retro Black"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Slug <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700"
+                    placeholder="e.g. jordan-4-retro-black"
                   />
                 </div>
                 <div className="space-y-2">

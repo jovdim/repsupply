@@ -3,6 +3,7 @@ import { smartFetch, cacheInvalidatePrefix, TTL } from "@/lib/cache";
 
 export interface ProductFromDB {
   id: number;
+  slug: string;
   name: string;
   price: string;
   image: string;
@@ -20,6 +21,7 @@ export interface ProductFromDB {
 function transformProduct(p: any): ProductFromDB {
   return {
     id: p.id,
+    slug: p.slug || p.id.toString(),
     name: p.name,
     price: p.price,
     image: p.image,
@@ -113,29 +115,36 @@ export async function getFeaturedProducts(
 }
 
 /**
- * Fetch a single product by ID, including QC groups and images. Cached for 5 minutes.
+ * Fetch a single product by ID or Slug, including QC groups and images. Cached for 5 minutes.
  */
 export async function getProductById(
-  id: number
+  idOrSlug: number | string
 ): Promise<ProductFromDB | null> {
-  return smartFetch<ProductFromDB | null>(`product:${id}`, async () => {
+  const isSlug = typeof idOrSlug === "string" && isNaN(Number(idOrSlug));
+  const cacheKey = isSlug ? `product:slug:${idOrSlug}` : `product:${idOrSlug}`;
+
+  return smartFetch<ProductFromDB | null>(cacheKey, async () => {
     const supabase = createClient();
+
+    // Determine query filter
+    const queryFilter = isSlug ? { slug: idOrSlug } : { id: Number(idOrSlug) };
 
     // Fetch product + QC data in parallel
     const [productRes, qcRes] = await Promise.all([
-      supabase.from("products").select(PRODUCT_SELECT).eq("id", id).single(),
+      supabase.from("products").select(PRODUCT_SELECT).match(queryFilter).single(),
       supabase
         .from("qc_groups")
         .select(`
           id,
           folder_name,
           sort_order,
+          product_id,
           qc_images (
             image_url,
             sort_order
           )
         `)
-        .eq("product_id", id)
+        .filter(isSlug ? "products.slug" : "product_id", "eq", idOrSlug)
         .order("sort_order", { ascending: true }),
     ]);
 
@@ -144,11 +153,31 @@ export async function getProductById(
       return null;
     }
 
-    if (qcRes.error) {
-      console.error("Error fetching QC groups:", qcRes.error);
+    // Since we filtered qc_groups, we need to handle the case where we joined by slug
+    // But qc_groups table has product_id, not slug. So we first need the product ID if we have a slug.
+    const actualProductId = productRes.data.id;
+
+    // Re-fetch QC if we only have slug (or just use the ID we just got)
+    let finalQcData = qcRes.data;
+    if (isSlug || !qcRes.data) {
+        const { data: qcData } = await supabase
+            .from("qc_groups")
+            .select(`
+                id,
+                product_id,
+                folder_name,
+                sort_order,
+                qc_images (
+                    image_url,
+                    sort_order
+                )
+            `)
+            .eq("product_id", actualProductId)
+            .order("sort_order", { ascending: true });
+        finalQcData = qcData;
     }
 
-    const qcImages = (qcRes.data || []).map((group: any) => ({
+    const qcImages = (finalQcData || []).map((group: any) => ({
       folder: group.folder_name,
       sort_order: group.sort_order,
       images: (group.qc_images || [])
@@ -161,6 +190,15 @@ export async function getProductById(
       qcImages,
     };
   }, TTL.MEDIUM);
+}
+
+/**
+ * Fetch a single product by Slug, including QC groups and images.
+ */
+export async function getProductBySlug(
+  slug: string
+): Promise<ProductFromDB | null> {
+  return getProductById(slug);
 }
 
 /**

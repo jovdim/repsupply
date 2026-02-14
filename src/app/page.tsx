@@ -203,7 +203,7 @@ export default function Home() {
                       {searchResults.map((product) => (
                         <Link
                           key={product.id}
-                          href={`/products/${product.id}`}
+                          href={`/products/${product.slug}`}
                           onClick={() => setShowDropdown(false)}
                           className="flex items-center gap-4 p-3 hover:bg-white/5 transition-colors group border-b border-white/5 last:border-0"
                         >
@@ -343,7 +343,7 @@ export default function Home() {
           featuredProducts.map((product) => (
             <Link
               key={product.id}
-              href={`/products/${product.id}`}
+              href={`/products/${product.slug}`}
               className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
             >
               <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">

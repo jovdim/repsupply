@@ -20,6 +20,7 @@ export default function NewProductPage() {
   
   // Form State
   const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
   const [price, setPrice] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
@@ -150,6 +151,15 @@ export default function NewProductPage() {
     }
   }
 
+  function handleNameChange(value: string) {
+    setName(value);
+    const generatedSlug = value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+    setSlug(generatedSlug);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     
@@ -167,6 +177,7 @@ export default function NewProductPage() {
       .from("products")
       .insert({
         name,
+        slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
         price,
         image, 
         link,
@@ -228,9 +239,21 @@ export default function NewProductPage() {
                 type="text"
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none transition-colors"
                 placeholder="e.g. Nike Dunk Low"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-secondary">Slug <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                required
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none transition-colors"
+                placeholder="e.g. nike-dunk-low"
               />
             </div>
 

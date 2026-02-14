@@ -456,7 +456,7 @@ function ProductsContent() {
                 {displayedProducts.map((product) => (
                 <Link
                     key={product.id}
-                    href={`/products/${product.id}`}
+                    href={`/products/${product.slug}`}
                     className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
                 >
                     {/* Image */}
@@ -492,7 +492,7 @@ function ProductsContent() {
                 {displayedProducts.map((product) => (
                 <Link
                     key={product.id}
-                    href={`/products/${product.id}`}
+                    href={`/products/${product.slug}`}
                     className="group bg-bg-card border border-white/5 rounded-xl p-3 md:p-4 flex items-center gap-3 md:gap-4 hover:border-white/20 transition-all cursor-pointer"
                 >
                     <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden bg-neutral-900 flex-shrink-0">

@@ -25,6 +25,7 @@ export default function EditProductPage() {
   
   // Form State
   const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
   const [price, setPrice] = useState("");
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
@@ -75,6 +76,7 @@ export default function EditProductPage() {
 
       if (product) {
         setName(product.name);
+        setSlug(product.slug || "");
         setPrice(product.price);
         setImage(product.image);
         setLink(product.link || "");
@@ -205,6 +207,13 @@ export default function EditProductPage() {
     }
   }
 
+  function handleNameChange(value: string) {
+    setName(value);
+    // Only auto-generate slug if it's potentially empty or we want to follow name changes
+    // But since it's an edit page, maybe we only auto-generate if it's truly empty?
+    // Let's allow manual editing.
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -222,6 +231,7 @@ export default function EditProductPage() {
       .from("products")
       .update({
         name,
+        slug,
         price,
         image,
         link,
@@ -309,6 +319,19 @@ export default function EditProductPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none transition-colors"
+                placeholder="e.g. Jordan 4 Retro Black"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-secondary">Slug <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                required
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none transition-colors"
+                placeholder="e.g. jordan-4-retro-black"
               />
             </div>
 
@@ -320,6 +343,7 @@ export default function EditProductPage() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none transition-colors"
+                placeholder="e.g. ￥290"
               />
             </div>
 
