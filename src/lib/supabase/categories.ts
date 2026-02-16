@@ -13,14 +13,14 @@ const CATEGORY_CACHE_KEY = "categories:all";
 
 /**
  * Fetch all categories.
- * Results are cached for 5 minutes.
+ * Results are cached for 2 hours with SWR (categories rarely change).
  */
 export async function getCategories(): Promise<CategoryFromDB[]> {
   return smartFetch<CategoryFromDB[]>(CATEGORY_CACHE_KEY, async () => {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("categories")
-      .select("*")
+      .select("id, name, slug, image, is_featured")
       .order("name");
 
     if (error || !data) {
@@ -29,7 +29,7 @@ export async function getCategories(): Promise<CategoryFromDB[]> {
     }
 
     return data;
-  }, TTL.MEDIUM);
+  }, TTL.LONG);
 }
 
 /**
@@ -37,6 +37,5 @@ export async function getCategories(): Promise<CategoryFromDB[]> {
  */
 export function invalidateCategoryCache(): void {
   cacheInvalidatePrefix("categories");
-  // Categories are linked to products (category names are embedded in product cards)
   import("./products").then(m => m.invalidateProductCache()).catch(() => {});
 }

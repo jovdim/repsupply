@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, ExternalLink, Loader2 } from "lucide-react";
-import Image from "next/image";
+import { ImageWithSkeleton } from "@/components/ui/ImageWithSkeleton";
 import { useState, useEffect } from "react";
 import { getYupooStores, type YupooStore } from "@/lib/supabase/yupoo";
 
@@ -77,11 +77,12 @@ export default function YupooPage() {
                 >
                 {/* Image */}
                  {store.image ? (
-                    <Image
+                    <ImageWithSkeleton
                        src={store.image}
                        alt={store.name}
                        fill
-                       quality={100}
+                       quality={75}
+                       sizes="(max-width: 768px) 50vw, 25vw"
                        className="object-cover group-hover:scale-110 transition-transform duration-700"
                     />
                  ) : (

@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Package, Users, Tags, Star, ImageIcon, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Store, ArrowLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { getAdminStats, type AdminStats } from "@/lib/supabase/admin";
+import { getAdminStats, getRecentProducts, type AdminStats } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -21,18 +20,16 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const supabase = createClient();
-      
       const [
         statsData,
-        { data: recent },
+        recent,
       ] = await Promise.all([
         getAdminStats(),
-        supabase.from("products").select("id, name, image, price, is_featured, created_at, qc_groups(count)").order("created_at", { ascending: false }).limit(5),
+        getRecentProducts(5),
       ]);
 
       setStats(statsData);
-      setRecentProducts(recent || []);
+      setRecentProducts(recent);
       setLoading(false);
     }
     fetchData();

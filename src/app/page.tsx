@@ -11,14 +11,13 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ImageWithSkeleton } from "@/components/ui/ImageWithSkeleton";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getFeaturedProducts, getProducts, type ProductFromDB } from "@/lib/supabase/products";
+import { getFeaturedProducts, getBestSellers, getProducts, type ProductFromDB } from "@/lib/supabase/products";
 import { getCategories, type CategoryFromDB } from "@/lib/supabase/categories";
-import { createClient } from "@/lib/supabase/client";
-import { useImagePreload } from "@/hooks/useImagePreload";
 import { useDebounce } from "@/hooks/useDebounce";
 
 const agents = [
@@ -41,6 +40,7 @@ export default function Home() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [categories, setCategories] = useState<CategoryFromDB[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [bestSellers, setBestSellers] = useState<ProductFromDB[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ProductFromDB[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -60,11 +60,7 @@ export default function Home() {
     fetchSearch();
   }, [debouncedSearch]);
 
-  // Preload featured products and category images
-  useImagePreload([
-    ...featuredProducts.map(p => p.image),
-    ...categories.map(c => c.image).filter(Boolean) as string[]
-  ]);
+
 
   const handleSearch = (query?: string) => {
     const q = (query ?? searchQuery).trim();
@@ -75,13 +71,16 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchData() {
-      const allCats = await getCategories();
+      const [allCats, products, sellers] = await Promise.all([
+        getCategories(),
+        getFeaturedProducts(10),
+        getBestSellers(10),
+      ]);
       
       // Only show featured categories on the homepage
       const featuredCats = allCats.filter(cat => cat.is_featured);
-
-      const products = await getFeaturedProducts(10);
       setFeaturedProducts(products);
+      setBestSellers(sellers);
       setLoadingProducts(false);
       setCategories(featuredCats);
       setLoadingCategories(false);
@@ -347,11 +346,12 @@ export default function Home() {
               className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
             >
               <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
-                <Image
+                <ImageWithSkeleton
                   src={product.image}
                   alt={product.name}
                   fill
-                  quality={100}
+                  quality={75}
+                  sizes="(max-width: 768px) 33vw, 20vw"
                   className="object-contain group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -406,11 +406,12 @@ export default function Home() {
                   className="group relative flex-shrink-0 w-24 md:w-auto aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-white/10 bg-bg-card cursor-pointer transform hover:scale-105 transition-all duration-500 shadow-lg hover:shadow-2xl"
                 >
                   {cat.image && (
-                    <Image
+                    <ImageWithSkeleton
                       src={cat.image}
                       alt={cat.name}
                       fill
-                      quality={100}
+                      quality={75}
+                      sizes="(max-width: 768px) 96px, 25vw"
                       className="object-cover group-hover:scale-110 transition-transform duration-700"
                     />
                   )}
@@ -507,17 +508,18 @@ export default function Home() {
         </h2>
 
         <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3 mb-16">
-          {featuredProducts.map((product) => (
+          {bestSellers.map((product) => (
             <div
               key={product.id}
               className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
             >
               <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
-                <Image
+                <ImageWithSkeleton
                   src={product.image}
                   alt={product.name}
                   fill
-                  quality={100}
+                  quality={75}
+                  sizes="(max-width: 768px) 33vw, 20vw"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>

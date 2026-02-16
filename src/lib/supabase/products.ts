@@ -39,9 +39,10 @@ function transformProduct(p: any): ProductFromDB {
   };
 }
 
-/** Shared select query for product + categories */
-const PRODUCT_SELECT = `
-  *,
+/** Only select columns we actually use — saves egress */
+const PRODUCT_COLUMNS = `
+  id, slug, name, price, image, link, description, badge,
+  is_featured, is_best_seller, created_at,
   product_categories (
     categories ( name, slug )
   )
@@ -49,19 +50,17 @@ const PRODUCT_SELECT = `
 
 /**
  * Fetch all products with their categories.
- * Results are cached for 5 minutes.
+ * Results are cached for 30 minutes with SWR.
  */
 export async function getProducts(
   category?: string,
   search?: string
 ): Promise<ProductFromDB[]> {
-  // Only cache unfiltered-all queries (other filters are applied client-side)
-  // SmartFetch handles L1/L2 caching and deduplication
   const all = await smartFetch<ProductFromDB[]>("products:all", async () => {
     const supabase = createClient();
     const { data: products, error } = await supabase
       .from("products")
-      .select(PRODUCT_SELECT)
+      .select(PRODUCT_COLUMNS)
       .order("id", { ascending: true });
 
     if (error || !products) {
@@ -70,18 +69,16 @@ export async function getProducts(
     }
 
     return products.map(transformProduct);
-  }, TTL.MEDIUM);
+  }, TTL.LONG);
 
   let result = all;
 
-  // Filter by category
   if (category && category.toLowerCase() !== "all") {
     result = result.filter((p) =>
       p.categories.some((c) => c.toLowerCase() === category.toLowerCase())
     );
   }
 
-  // Filter by search
   if (search) {
     const q = search.toLowerCase();
     result = result.filter((p) => p.name.toLowerCase().includes(q));
@@ -91,7 +88,7 @@ export async function getProducts(
 }
 
 /**
- * Fetch featured products. Cached for 5 minutes.
+ * Fetch featured products. Cached for 30 minutes with SWR.
  */
 export async function getFeaturedProducts(
   limit: number = 12
@@ -100,7 +97,7 @@ export async function getFeaturedProducts(
     const supabase = createClient();
     const { data: products, error } = await supabase
       .from("products")
-      .select(PRODUCT_SELECT)
+      .select(PRODUCT_COLUMNS)
       .eq("is_featured", true)
       .order("id", { ascending: true })
       .limit(limit);
@@ -111,11 +108,36 @@ export async function getFeaturedProducts(
     }
 
     return products.map(transformProduct);
-  }, TTL.MEDIUM);
+  }, TTL.LONG);
 }
 
 /**
- * Fetch a single product by ID or Slug, including QC groups and images. Cached for 5 minutes.
+ * Fetch best-selling products. Cached for 30 minutes with SWR.
+ */
+export async function getBestSellers(
+  limit: number = 10
+): Promise<ProductFromDB[]> {
+  return smartFetch<ProductFromDB[]>(`products:best_sellers:${limit}`, async () => {
+    const supabase = createClient();
+    const { data: products, error } = await supabase
+      .from("products")
+      .select(PRODUCT_COLUMNS)
+      .eq("is_best_seller", true)
+      .order("id", { ascending: true })
+      .limit(limit);
+
+    if (error || !products) {
+      console.error("Error fetching best sellers:", error);
+      return [];
+    }
+
+    return products.map(transformProduct);
+  }, TTL.LONG);
+}
+
+/**
+ * Fetch a single product by ID or Slug, including QC groups.
+ * Fixed: only 2 Supabase calls instead of 3.
  */
 export async function getProductById(
   idOrSlug: number | string
@@ -126,58 +148,30 @@ export async function getProductById(
   return smartFetch<ProductFromDB | null>(cacheKey, async () => {
     const supabase = createClient();
 
-    // Determine query filter
+    // Step 1: Fetch the product
     const queryFilter = isSlug ? { slug: idOrSlug } : { id: Number(idOrSlug) };
+    const { data: productData, error: productError } = await supabase
+      .from("products")
+      .select(PRODUCT_COLUMNS)
+      .match(queryFilter)
+      .single();
 
-    // Fetch product + QC data in parallel
-    const [productRes, qcRes] = await Promise.all([
-      supabase.from("products").select(PRODUCT_SELECT).match(queryFilter).single(),
-      supabase
-        .from("qc_groups")
-        .select(`
-          id,
-          folder_name,
-          sort_order,
-          product_id,
-          qc_images (
-            image_url,
-            sort_order
-          )
-        `)
-        .filter(isSlug ? "products.slug" : "product_id", "eq", idOrSlug)
-        .order("sort_order", { ascending: true }),
-    ]);
-
-    if (productRes.error || !productRes.data) {
-      console.error("Error fetching product:", productRes.error);
+    if (productError || !productData) {
+      console.error("Error fetching product:", productError);
       return null;
     }
 
-    // Since we filtered qc_groups, we need to handle the case where we joined by slug
-    // But qc_groups table has product_id, not slug. So we first need the product ID if we have a slug.
-    const actualProductId = productRes.data.id;
+    // Step 2: Fetch QC data using the resolved product ID (single query, no duplicates)
+    const { data: qcData } = await supabase
+      .from("qc_groups")
+      .select(`
+        id, folder_name, sort_order,
+        qc_images ( image_url, sort_order )
+      `)
+      .eq("product_id", productData.id)
+      .order("sort_order", { ascending: true });
 
-    // Re-fetch QC if we only have slug (or just use the ID we just got)
-    let finalQcData = qcRes.data;
-    if (isSlug || !qcRes.data) {
-        const { data: qcData } = await supabase
-            .from("qc_groups")
-            .select(`
-                id,
-                product_id,
-                folder_name,
-                sort_order,
-                qc_images (
-                    image_url,
-                    sort_order
-                )
-            `)
-            .eq("product_id", actualProductId)
-            .order("sort_order", { ascending: true });
-        finalQcData = qcData;
-    }
-
-    const qcImages = (finalQcData || []).map((group: any) => ({
+    const qcImages = (qcData || []).map((group: any) => ({
       folder: group.folder_name,
       sort_order: group.sort_order,
       images: (group.qc_images || [])
@@ -186,7 +180,7 @@ export async function getProductById(
     })).sort((a: any, b: any) => a.sort_order - b.sort_order);
 
     return {
-      ...transformProduct(productRes.data),
+      ...transformProduct(productData),
       qcImages,
     };
   }, TTL.MEDIUM);
@@ -209,7 +203,7 @@ export async function getAllProductsLight(): Promise<ProductFromDB[]> {
 }
 
 /**
- * Fetch all products for admin management with categories and QC group counts. Cached for 5 minutes.
+ * Fetch all products for admin management. Cached for 5 minutes.
  */
 export async function getAdminProducts(): Promise<any[]> {
   return smartFetch<any[]>("admin:products_list", async () => {
@@ -217,12 +211,10 @@ export async function getAdminProducts(): Promise<any[]> {
     const { data, error } = await supabase
       .from("products")
       .select(`
-        *,
+        id, slug, name, price, image, is_featured, is_best_seller,
+        link, description, created_at,
         product_categories (
-          categories (
-            id,
-            name
-          )
+          categories ( id, name )
         ),
         qc_groups(count)
       `)
@@ -234,7 +226,7 @@ export async function getAdminProducts(): Promise<any[]> {
     }
 
     return data || [];
-  }, TTL.MEDIUM);
+  }, TTL.SHORT);
 }
 
 /**
@@ -243,5 +235,5 @@ export async function getAdminProducts(): Promise<any[]> {
 export function invalidateProductCache(): void {
   cacheInvalidatePrefix("product");
   cacheInvalidatePrefix("admin:products_list");
-  cacheInvalidatePrefix("admin"); // Clear admin stats too
+  cacheInvalidatePrefix("admin");
 }

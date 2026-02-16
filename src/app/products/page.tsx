@@ -14,12 +14,11 @@ import {
   Flame,
   BrickWall
 } from "lucide-react";
-import Image from "next/image";
+import { ImageWithSkeleton } from "@/components/ui/ImageWithSkeleton";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { getProducts, type ProductFromDB } from "@/lib/supabase/products";
-import { createClient } from "@/lib/supabase/client";
-import { cacheGet, cacheSet, TTL } from "@/lib/cache";
+import { getCategories } from "@/lib/supabase/categories";
 import { useSearchParams, useRouter } from "next/navigation";
 
 type FilterType = "all" | "featured" | "best_seller";
@@ -71,29 +70,15 @@ function ProductsContent() {
     async function fetchData() {
       setLoading(true);
 
-      // Check cache for categories
-      const catCacheKey = "categories:names";
-      let catNames = cacheGet<string[]>(catCacheKey);
-
-      const [data, cats] = await Promise.all([
+      const [data, catData] = await Promise.all([
         getProducts(),
-        catNames
-          ? Promise.resolve(catNames)
-          : (async () => {
-              const supabase = createClient();
-              const { data: catData } = await supabase
-                .from("categories")
-                .select("name")
-                .order("name");
-              const names = catData?.map((c: { name: string }) => c.name) || [];
-              cacheSet(catCacheKey, names, TTL.LONG);
-              return names;
-            })(),
+        getCategories(),
       ]);
 
+      const catNames = catData.map(c => c.name);
       setAllProducts(data);
       setProducts(data);
-      setCategories(["All", ...cats]);
+      setCategories(["All", ...catNames]);
       setLoading(false);
     }
     fetchData();
@@ -461,11 +446,12 @@ function ProductsContent() {
                 >
                     {/* Image */}
                     <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
-                    <Image
+                    <ImageWithSkeleton
                         src={product.image}
                         alt={product.name}
                         fill
-                        quality={100}
+                        quality={75}
+                        sizes="(max-width: 768px) 33vw, 20vw"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     {product.is_featured && (
@@ -496,11 +482,12 @@ function ProductsContent() {
                     className="group bg-bg-card border border-white/5 rounded-xl p-3 md:p-4 flex items-center gap-3 md:gap-4 hover:border-white/20 transition-all cursor-pointer"
                 >
                     <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden bg-neutral-900 flex-shrink-0">
-                    <Image
+                    <ImageWithSkeleton
                         src={product.image}
                         alt={product.name}
                         fill
-                        quality={100}
+                        quality={75}
+                        sizes="80px"
                         className="object-cover"
                     />
                     </div>

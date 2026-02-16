@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getProducts, getAdminProducts, ProductFromDB } from "@/lib/supabase/products";
 import { getCategories } from "@/lib/supabase/categories";
 import { invalidateAdminCache } from "@/lib/supabase/admin";
-import { useImagePreload } from "@/hooks/useImagePreload";
+
 import { 
   Plus, 
   Search, 
@@ -33,7 +33,7 @@ import {
   ArrowLeft
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import { ImageWithSkeleton } from "@/components/ui/ImageWithSkeleton";
 import { convertLink } from "@/lib/linkConverter";
 
 interface Category {
@@ -493,8 +493,7 @@ export default function AdminProductsPage() {
     setCurrentPage(1);
   }, [search, selectedCategory, filterFeatured, sortConfig]);
 
-  // Preload images for the current view
-  useImagePreload(paginatedProducts.map(p => p.image));
+
 
   const hasActiveFilters = selectedCategory || filterFeatured !== "all" || search || sortConfig;
 
@@ -685,10 +684,12 @@ export default function AdminProductsPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
                           <div className="relative w-11 h-11 rounded-lg bg-neutral-800 border border-white/5 overflow-hidden flex-shrink-0 shadow-inner">
-                             <Image
+                             <ImageWithSkeleton
                                src={product.image}
                                alt={product.name}
                                fill
+                               quality={75}
+                               sizes="44px"
                                className="object-cover group-hover/row:scale-110 transition-transform duration-500"
                              />
                           </div>
@@ -1108,7 +1109,14 @@ export default function AdminProductsPage() {
                       ) : image ? (
                         <div className="absolute inset-0 p-3">
                           <div className="relative w-full h-full rounded-xl overflow-hidden group/img shadow-2xl">
-                            <Image src={image} alt="Preview" fill className="object-cover transition-transform duration-700 group-hover/img:scale-110" />
+                            <ImageWithSkeleton
+                              src={image}
+                              alt="Preview"
+                              fill
+                              quality={75}
+                              sizes="(max-width: 768px) 100vw, 500px"
+                              className="object-cover transition-transform duration-700 group-hover/img:scale-110"
+                            />
                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                               <div className="text-center transform translate-y-2 group-hover/img:translate-y-0 transition-transform duration-300">
                                 <ImageIcon className="w-6 h-6 text-white mx-auto mb-2 opacity-80" />

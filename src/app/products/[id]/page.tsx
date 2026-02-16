@@ -73,11 +73,13 @@ export default function ProductDetailPage({
   // Check favorite status and record view
   useEffect(() => {
     if (!product || !user) return;
+    const uid = user.id;
+    const pid = product.id;
 
     async function initUserFeatures() {
-      const fav = await checkIsFavorited(product!.id);
+      const fav = await checkIsFavorited(uid, pid);
       setIsFavorited(fav);
-      await recordView(product!.id);
+      await recordView(uid, pid);
     }
     initUserFeatures();
   }, [product, user]);
@@ -182,10 +184,10 @@ export default function ProductDetailPage({
     }
 
     if (isFavorited) {
-      const success = await removeFavorite(product.id);
+      const success = await removeFavorite(user.id, product.id);
       if (success) setIsFavorited(false);
     } else {
-      const success = await addFavorite(product.id);
+      const success = await addFavorite(user.id, product.id);
       if (success) setIsFavorited(true);
     }
   };

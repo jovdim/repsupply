@@ -1,31 +1,46 @@
+/**
+ * Advanced L1/L2 Cache with Stale-While-Revalidate
+ * --------------------------------------------------
+ * L1: In-memory Map (instant, per-page-load)
+ * L2: localStorage  (persists across tabs/reloads)
+ *
+ * SWR: Returns stale data immediately while refreshing
+ *      in the background, so the UI never waits.
+ */
+
 export const TTL = {
-  SHORT: 60,       // 1 minute
-  MEDIUM: 300,     // 5 minutes
-  LONG: 3600,      // 1 hour
-};
+  SHORT: 300,       // 5 minutes
+  MEDIUM: 1800,     // 30 minutes
+  LONG: 7200,       // 2 hours
+} as const;
+
+// SWR window = how long past expiry we still serve stale data
+const SWR_MULTIPLIER = 2; // serve stale for up to 2× TTL
 
 interface CacheItem<T> {
   value: T;
-  expiry: number;
+  expiry: number;      // when the item becomes "stale"
+  hardExpiry: number;   // when the item is truly dead (stale window passed)
 }
 
 const isServer = typeof window === 'undefined';
 const SYNC_KEY = 'cache:sync_invalidation';
-const CACHE_VERSION = 'v1'; // Increment this when data structures change
-const MAX_L1_ITEMS = 50;    // Prevent memory leaks in very long sessions
+const CACHE_VERSION = 'v2';
+const MAX_L1_ITEMS = 100;
 
-// L1 Cache: In-memory (Fastest, per-page-load)
+// L1 Cache: In-memory (fastest)
 const memoryCache = new Map<string, CacheItem<any>>();
 
-// Helper to get versioned key
+// Deduplication: prevent identical concurrent fetches
+const pendingRequests = new Map<string, Promise<any>>();
+
 const getVersionedKey = (key: string) => `repsupply:${CACHE_VERSION}:${key}`;
 
-// Listen for invalidation from other tabs
+// --- Cross-tab invalidation ---
 if (!isServer) {
   window.addEventListener('storage', (event) => {
     if (event.key === SYNC_KEY && event.newValue) {
       const prefix = event.newValue;
-      // Clear L1 only (L2 is already cleared by the originating tab)
       for (const key of memoryCache.keys()) {
         if (key.startsWith(prefix)) {
           memoryCache.delete(key);
@@ -35,24 +50,43 @@ if (!isServer) {
   });
 }
 
-// Deduplication: Track pending requests to avoid double-fetching
-const pendingRequests = new Map<string, Promise<any>>();
+// --- LRU eviction ---
+function evictL1IfNeeded(): void {
+  if (memoryCache.size < MAX_L1_ITEMS) return;
 
-export function cacheGet<T>(key: string): T | null {
-  if (isServer) return null;
-  const vKey = getVersionedKey(key);
-
-  // 1. Check Memory (L1)
-  const memItem = memoryCache.get(vKey);
-  if (memItem) {
-    if (Date.now() < memItem.expiry) {
-      return memItem.value as T;
-    } else {
-      memoryCache.delete(vKey);
+  const now = Date.now();
+  // First pass: remove expired items
+  for (const [key, item] of memoryCache) {
+    if (now > item.hardExpiry) {
+      memoryCache.delete(key);
     }
   }
 
-  // 2. Check LocalStorage (L2)
+  // If still over limit, evict oldest entries
+  if (memoryCache.size >= MAX_L1_ITEMS) {
+    const keysToEvict = Array.from(memoryCache.keys()).slice(0, Math.floor(MAX_L1_ITEMS / 4));
+    keysToEvict.forEach(k => memoryCache.delete(k));
+  }
+}
+
+// --- Core Get/Set ---
+
+export function cacheGet<T>(key: string): { value: T; isStale: boolean } | null {
+  if (isServer) return null;
+  const vKey = getVersionedKey(key);
+
+  // 1. Check L1 (memory)
+  const memItem = memoryCache.get(vKey);
+  if (memItem) {
+    const now = Date.now();
+    if (now > memItem.hardExpiry) {
+      memoryCache.delete(vKey);
+    } else {
+      return { value: memItem.value as T, isStale: now > memItem.expiry };
+    }
+  }
+
+  // 2. Check L2 (localStorage)
   try {
     const itemStr = localStorage.getItem(vKey);
     if (!itemStr) return null;
@@ -60,20 +94,16 @@ export function cacheGet<T>(key: string): T | null {
     const item: CacheItem<T> = JSON.parse(itemStr);
     const now = Date.now();
 
-    if (now > item.expiry) {
+    if (now > item.hardExpiry) {
       localStorage.removeItem(vKey);
       return null;
     }
 
-    // Populate L1 from L2 (with limit check)
-    if (memoryCache.size >= MAX_L1_ITEMS) {
-      const firstKey = memoryCache.keys().next().value;
-      if (firstKey) memoryCache.delete(firstKey);
-    }
+    // Promote to L1
+    evictL1IfNeeded();
     memoryCache.set(vKey, item);
-    return item.value;
-  } catch (err) {
-    console.warn('Cache get error:', err);
+    return { value: item.value, isStale: now > item.expiry };
+  } catch {
     return null;
   }
 }
@@ -81,86 +111,134 @@ export function cacheGet<T>(key: string): T | null {
 export function cacheSet<T>(key: string, value: T, ttlSeconds: number = TTL.MEDIUM): void {
   if (isServer) return;
   const vKey = getVersionedKey(key);
+  const now = Date.now();
+  const ttlMs = ttlSeconds * 1000;
+
+  const item: CacheItem<T> = {
+    value,
+    expiry: now + ttlMs,
+    hardExpiry: now + ttlMs * SWR_MULTIPLIER,
+  };
+
+  evictL1IfNeeded();
+  memoryCache.set(vKey, item);
 
   try {
-    const now = Date.now();
-    const item: CacheItem<T> = {
-      value,
-      expiry: now + ttlSeconds * 1000,
-    };
-
-    // Set L1 (with limit check)
-    if (memoryCache.size >= MAX_L1_ITEMS) {
-      const firstKey = memoryCache.keys().next().value;
-      if (firstKey) memoryCache.delete(firstKey);
-    }
-    memoryCache.set(vKey, item);
-
-    // Set L2
     localStorage.setItem(vKey, JSON.stringify(item));
-  } catch (err) {
-    console.warn('Cache set error:', err);
+  } catch {
+    // localStorage full — clear old repsupply keys
+    cleanupLocalStorage();
+    try {
+      localStorage.setItem(vKey, JSON.stringify(item));
+    } catch {
+      // Still full, give up on L2 for this item
+    }
   }
 }
+
+function cleanupLocalStorage(): void {
+  const prefix = `repsupply:`;
+  const now = Date.now();
+  const keysToRemove: string[] = [];
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(prefix)) {
+      try {
+        const item = JSON.parse(localStorage.getItem(key) || '');
+        if (now > item.hardExpiry) {
+          keysToRemove.push(key);
+        }
+      } catch {
+        keysToRemove.push(key);
+      }
+    }
+  }
+
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+}
+
+// --- Invalidation ---
 
 export function cacheInvalidatePrefix(prefix: string): void {
   if (isServer) return;
   const vPrefix = getVersionedKey(prefix);
 
+  // Clear L1
+  for (const key of memoryCache.keys()) {
+    if (key.startsWith(vPrefix)) {
+      memoryCache.delete(key);
+    }
+  }
+
+  // Clear L2
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(vPrefix)) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+
+  // Notify other tabs
   try {
-    // Clear L1
-    for (const key of memoryCache.keys()) {
-      if (key.startsWith(vPrefix)) {
-        memoryCache.delete(key);
-      }
-    }
-
-    // Clear L2
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(vPrefix)) {
-        keysToRemove.push(key);
-      }
-    }
-
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-
-    // Notify other tabs
     localStorage.setItem(SYNC_KEY, prefix);
-    // Immediately clear to allow same-prefix subsequent triggers
     setTimeout(() => {
       if (localStorage.getItem(SYNC_KEY) === prefix) {
         localStorage.removeItem(SYNC_KEY);
       }
     }, 100);
-  } catch (err) {
-    console.warn('Cache invalidate error:', err);
-  }
+  } catch { /* ignore */ }
 }
 
+// --- Smart Fetch with SWR ---
+
 /**
- * Smart Fetch: 
- * 1. Checks L1 Cache (Memory)
- * 2. Checks L2 Cache (Session)
- * 3. Checks In-Flight Requests (Deduplication)
- * 4. Fetches & Caches if needed
+ * Stale-While-Revalidate fetch:
+ * 1. If fresh cache → return immediately
+ * 2. If stale cache → return stale + refresh in background
+ * 3. If no cache → fetch, cache, and return
+ * 4. Deduplicates concurrent identical requests
  */
 export async function smartFetch<T>(
-  key: string, 
-  fetchFn: () => Promise<T>, 
+  key: string,
+  fetchFn: () => Promise<T>,
   ttlSeconds: number = TTL.MEDIUM
 ): Promise<T> {
-  // 1. Check existing cache
+  // 1. Check cache
   const cached = cacheGet<T>(key);
-  if (cached) return cached;
 
-  // 2. Check pending requests
+  if (cached) {
+    if (!cached.isStale) {
+      // Fresh — return immediately
+      return cached.value;
+    }
+
+    // Stale — return immediately, refresh in background
+    if (!pendingRequests.has(key)) {
+      const bgRefresh = fetchFn()
+        .then((data) => {
+          cacheSet(key, data, ttlSeconds);
+          pendingRequests.delete(key);
+          return data;
+        })
+        .catch(() => {
+          pendingRequests.delete(key);
+          // Keep stale data on error
+        });
+      pendingRequests.set(key, bgRefresh);
+    }
+
+    return cached.value;
+  }
+
+  // 2. No cache — check if already fetching
   if (pendingRequests.has(key)) {
     return pendingRequests.get(key) as Promise<T>;
   }
 
-  // 3. Initiate Fetch
+  // 3. Fresh fetch
   const promise = fetchFn()
     .then((data) => {
       cacheSet(key, data, ttlSeconds);

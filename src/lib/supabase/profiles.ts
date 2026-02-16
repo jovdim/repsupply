@@ -19,16 +19,17 @@ export async function getAdminProfiles(): Promise<ProfileFromDB[]> {
   return smartFetch<ProfileFromDB[]>(PROFILES_CACHE_KEY, async () => {
     const supabase = createClient();
     
-    // Attempt join for counts
     const { data: profilesWithCount, error } = await supabase
       .from("profiles")
-      .select("*, favorites(count)")
+      .select("id, full_name, avatar_url, created_at, favorites(count)")
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching admin profiles:", error);
-      // Fallback to basic profiles
-      const { data: basic } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      const { data: basic } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, created_at")
+        .order("created_at", { ascending: false });
       return basic || [];
     }
 
@@ -36,7 +37,7 @@ export async function getAdminProfiles(): Promise<ProfileFromDB[]> {
       ...p,
       favorites_count: p.favorites?.[0]?.count || 0
     }));
-  }, TTL.MEDIUM);
+  }, TTL.SHORT);
 }
 
 /**

@@ -12,7 +12,7 @@ import {
   ArrowRight,
   User,
 } from "lucide-react";
-import Image from "next/image";
+import { ImageWithSkeleton } from "@/components/ui/ImageWithSkeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -46,12 +46,13 @@ export default function ProfilePage() {
   // Fetch user data
   useEffect(() => {
     if (!user) return;
+    const uid = user.id;
 
     async function fetchData() {
       setDataLoading(true);
       const [favs, history] = await Promise.all([
-        getFavorites(),
-        getViewHistory(20),
+        getFavorites(uid),
+        getViewHistory(uid, 20),
       ]);
       setSavedItems(favs);
       setHistoryItems(history);
@@ -228,11 +229,12 @@ export default function ProfilePage() {
                       className="bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all group cursor-pointer"
                     >
                       <div className="relative aspect-square bg-neutral-900">
-                        <Image
+                        <ImageWithSkeleton
                           src={item.image}
                           alt={item.name}
                           fill
-                          quality={100}
+                          quality={75}
+                          sizes="(max-width: 768px) 33vw, 20vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       </div>
@@ -294,11 +296,12 @@ export default function ProfilePage() {
                       className="bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all group cursor-pointer relative"
                     >
                       <div className="relative aspect-square bg-neutral-900">
-                        <Image
+                        <ImageWithSkeleton
                           src={item.image}
                           alt={item.name}
                           fill
-                          quality={100}
+                          quality={75}
+                          sizes="(max-width: 768px) 33vw, 20vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                          {/* Time overlay */}

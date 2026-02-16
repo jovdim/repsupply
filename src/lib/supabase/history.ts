@@ -4,23 +4,20 @@ import { createClient } from "@/lib/supabase/client";
  * Record a product view for the current user.
  * Deletes any existing entry first so the product appears only once
  * with the latest timestamp.
+ * Accepts userId to avoid redundant auth.getUser() calls.
  */
-export async function recordView(productId: number): Promise<void> {
+export async function recordView(userId: string, productId: number): Promise<void> {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
 
   // Delete existing entry first, then insert — sequential to avoid race
   await supabase
     .from("view_history")
     .delete()
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("product_id", productId);
 
   await supabase.from("view_history").insert({
-    user_id: user.id,
+    user_id: userId,
     product_id: productId,
   });
 }
@@ -29,29 +26,16 @@ export async function recordView(productId: number): Promise<void> {
  * Get the user's view history with product details.
  * Deduplicates by product_id (keeps only the most recent view).
  */
-export async function getViewHistory(limit: number = 20): Promise<any[]> {
+export async function getViewHistory(userId: string, limit: number = 20): Promise<any[]> {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
 
   const { data, error } = await supabase
     .from("view_history")
-    .select(
-      `
-      id,
-      viewed_at,
-      product_id,
-      products (
-        id,
-        name,
-        price,
-        image
-      )
-    `
-    )
-    .eq("user_id", user.id)
+    .select(`
+      id, viewed_at, product_id,
+      products ( id, name, price, image )
+    `)
+    .eq("user_id", userId)
     .order("viewed_at", { ascending: false })
     .limit(limit * 2); // Fetch extra to account for potential duplicates
 

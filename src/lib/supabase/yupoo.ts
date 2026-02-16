@@ -12,14 +12,14 @@ const STORE_CACHE_KEY = "yupoo:stores";
 
 /**
  * Fetch all Yupoo stores.
- * Results are cached for 5 minutes.
+ * Results are cached for 2 hours with SWR (stores rarely change).
  */
 export async function getYupooStores(): Promise<YupooStore[]> {
   return smartFetch<YupooStore[]>(STORE_CACHE_KEY, async () => {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("yupoo_stores")
-      .select("*")
+      .select("id, name, link, image")
       .order("name");
 
     if (error || !data) {
@@ -28,7 +28,7 @@ export async function getYupooStores(): Promise<YupooStore[]> {
     }
 
     return data;
-  }, TTL.MEDIUM);
+  }, TTL.LONG);
 }
 
 /**
