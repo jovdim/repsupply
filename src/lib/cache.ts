@@ -219,7 +219,12 @@ export async function smartFetch<T>(
     if (!pendingRequests.has(key)) {
       const bgRefresh = fetchFn()
         .then((data) => {
-          cacheSet(key, data, ttlSeconds);
+          // Only update cache with non-empty results
+          const isEmpty = data === null || data === undefined ||
+            (Array.isArray(data) && data.length === 0);
+          if (!isEmpty) {
+            cacheSet(key, data, ttlSeconds);
+          }
           pendingRequests.delete(key);
           return data;
         })
@@ -241,7 +246,13 @@ export async function smartFetch<T>(
   // 3. Fresh fetch
   const promise = fetchFn()
     .then((data) => {
-      cacheSet(key, data, ttlSeconds);
+      // Don't cache empty/null results — they usually indicate a failed fetch
+      // that should be retried on next request
+      const isEmpty = data === null || data === undefined ||
+        (Array.isArray(data) && data.length === 0);
+      if (!isEmpty) {
+        cacheSet(key, data, ttlSeconds);
+      }
       pendingRequests.delete(key);
       return data;
     })

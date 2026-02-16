@@ -8,6 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { convertLink } from "@/lib/linkConverter";
+import { compressImage } from "@/lib/imageUtils";
 
 interface Category {
   id: number;
@@ -127,12 +128,14 @@ export default function EditProductPage() {
     setUploading(true);
     const supabase = createClient();
     
-    const ext = file.name.split(".").pop() || "png";
+    // Compress image before upload
+    const compressed = await compressImage(file);
+    const ext = compressed.name.split(".").pop() || "webp";
     const fileName = `product-${id}-${Date.now()}.${ext}`;
     
     const { data, error } = await supabase.storage
       .from("product-images")
-      .upload(fileName, file, { upsert: true });
+      .upload(fileName, compressed, { upsert: true });
 
     if (error) {
       console.error("Upload error:", error);

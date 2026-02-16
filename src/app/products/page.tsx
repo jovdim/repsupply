@@ -12,12 +12,13 @@ import {
   ChevronRight,
   Star,
   Flame,
-  BrickWall
+  BrickWall,
+  Loader2
 } from "lucide-react";
 import { ImageWithSkeleton } from "@/components/ui/ImageWithSkeleton";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
-import { getProducts, type ProductFromDB } from "@/lib/supabase/products";
+import { getProductsPaginated, type ProductFromDB } from "@/lib/supabase/products";
 import { getCategories } from "@/lib/supabase/categories";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -28,6 +29,7 @@ function ProductsContent() {
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const initialCategory = searchParams.get("category") || "All";
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const initialFilter = (searchParams.get("filter") as FilterType) || "all";
@@ -39,10 +41,21 @@ function ProductsContent() {
   const [mobileGridCols, setMobileGridCols] = useState<2 | 3>(3);
   const [isMobile, setIsMobile] = useState(false);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+
+  // Pagination state
   const [products, setProducts] = useState<ProductFromDB[]>([]);
-  const [allProducts, setAllProducts] = useState<ProductFromDB[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
   const [categories, setCategories] = useState<string[]>(["All"]);
+  const PAGE_SIZE = 20;
+
+  // Sentinel ref for infinite scroll
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  // Track current filters to detect changes
+  const filtersRef = useRef({ category: selectedCategory, search: debouncedSearch, filter: activeFilter });
 
   // Read URL params on mount
   useEffect(() => {
@@ -65,58 +78,83 @@ function ProductsContent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Fetch all products and categories on mount
+  // Debounce search input (400ms)
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-      const [data, catData] = await Promise.all([
-        getProducts(),
-        getCategories(),
-      ]);
-
-      const catNames = catData.map(c => c.name);
-      setAllProducts(data);
-      setProducts(data);
-      setCategories(["All", ...catNames]);
-      setLoading(false);
-    }
-    fetchData();
+  // Fetch categories on mount
+  useEffect(() => {
+    getCategories().then(catData => {
+      setCategories(["All", ...catData.map(c => c.name)]);
+    });
   }, []);
 
-  // Client-side filtering when search/category/filter changes
+  // Fetch first page when filters change (reset pagination)
   useEffect(() => {
-    let filtered = allProducts;
+    let cancelled = false;
+    const fetchFirstPage = async () => {
+      setLoading(true);
+      setProducts([]);
+      setPage(0);
+      setHasMore(true);
 
-    // Apply filter tab
-    if (activeFilter === "featured") {
-      filtered = filtered.filter((p) => p.is_featured);
-    } else if (activeFilter === "best_seller") {
-      filtered = filtered.filter((p) => p.is_best_seller);
-    }
+      const result = await getProductsPaginated(0, PAGE_SIZE, {
+        category: selectedCategory,
+        search: debouncedSearch,
+        filter: activeFilter,
+      });
 
-    // Apply category filter
-    if (selectedCategory !== "All") {
-      filtered = filtered.filter((p) =>
-        p.categories.some(
-          (c) => c.toLowerCase() === selectedCategory.toLowerCase()
-        )
-      );
-    }
+      if (cancelled) return;
+      setProducts(result.products);
+      setTotalCount(result.totalCount);
+      setHasMore(result.hasMore);
+      setPage(1);
+      setLoading(false);
+    };
 
-    // Apply search
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter((p) => p.name.toLowerCase().includes(q));
-    }
+    fetchFirstPage();
+    return () => { cancelled = true; };
+  }, [selectedCategory, debouncedSearch, activeFilter]);
 
-    setProducts(filtered);
-  }, [searchQuery, selectedCategory, activeFilter, allProducts]);
+  // Load next page (called by IntersectionObserver)
+  const loadNextPage = useCallback(async () => {
+    if (loadingMore || !hasMore || loading) return;
+    setLoadingMore(true);
 
-  // Apply grid limits for Featured/Best Sellers
-  const displayedProducts = (activeFilter === "featured" || activeFilter === "best_seller")
-    ? products.slice(0, isMobile ? 9 : 15)
-    : products;
+    const result = await getProductsPaginated(page, PAGE_SIZE, {
+      category: selectedCategory,
+      search: debouncedSearch,
+      filter: activeFilter,
+    });
+
+    setProducts(prev => [...prev, ...result.products]);
+    setTotalCount(result.totalCount);
+    setHasMore(result.hasMore);
+    setPage(prev => prev + 1);
+    setLoadingMore(false);
+  }, [page, loadingMore, hasMore, loading, selectedCategory, debouncedSearch, activeFilter]);
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadNextPage();
+        }
+      },
+      { rootMargin: "400px" } // Start loading 400px before user reaches bottom
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadNextPage]);
+
+  const displayedProducts = products;
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -381,7 +419,7 @@ function ProductsContent() {
 
               {/* Results count */}
               <div className="mt-3 flex items-center justify-between text-xs text-text-muted px-1">
-                <span>{displayedProducts.length} products</span>
+                <span>{totalCount > 0 ? `${products.length} of ${totalCount} products` : `${products.length} products`}</span>
                 <div className="flex items-center gap-2">
                   {activeFilter !== "all" && (
                     <span className="bg-white/5 px-2 py-0.5 rounded-full">
@@ -413,7 +451,7 @@ function ProductsContent() {
         <div className="px-4 md:px-12 lg:px-20 xl:px-24">
             {/* Results count - mobile */}
             <div className="md:hidden flex items-center justify-between px-2 py-2">
-               <span className="text-xs text-text-muted">{displayedProducts.length} products</span>
+               <span className="text-xs text-text-muted">{totalCount > 0 ? `${products.length} of ${totalCount}` : `${products.length} products`}</span>
                {hasActiveFilters && (
                   <button onClick={handleClearFilters} className="text-xs text-white underline underline-offset-4">
                      Clear
@@ -512,6 +550,25 @@ function ProductsContent() {
                 </Link>
                 ))}
             </div>
+            )}
+
+            {/* Infinite scroll sentinel + loading spinner */}
+            {!loading && hasMore && (
+              <div ref={sentinelRef} className="flex justify-center py-8">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-text-muted text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading more...
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* End of results */}
+            {!loading && !hasMore && products.length > 0 && (
+              <div className="text-center py-6 text-text-muted text-xs">
+                All {totalCount} products loaded
+              </div>
             )}
 
             {/* Empty state */}

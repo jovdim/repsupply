@@ -9,6 +9,7 @@ import { ArrowLeft, Plus, X, Upload, Trash2, Folder, Image as ImageIcon, Save, C
 import Link from "next/link";
 import Image from "next/image";
 import JSZip from "jszip";
+import { compressImage } from "@/lib/imageUtils";
 
 interface QcImage {
   id: number;
@@ -226,12 +227,13 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
    const uploads = fileArray.map(async (file, index) => {
       if (!file.type.startsWith("image/")) return null;
 
-      const ext = file.name.split(".").pop() || "png";
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop() || "webp";
       const fileName = `qc-${id}-${newGroupId}-${Date.now()}-${index}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
          .from("product-images")
-         .upload(fileName, file);
+         .upload(fileName, compressed);
 
       if (uploadError) return null;
 
@@ -332,12 +334,13 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
         if (groupError || !groupData) continue;
 
         const uploads = files.map(async (imgFile, imgIndex) => {
-          const ext = imgFile.name.split(".").pop() || "png";
+          const compressed = await compressImage(imgFile);
+          const ext = compressed.name.split(".").pop() || "webp";
           const fileName = `qc-${id}-${groupData.id}-${Date.now()}-${imgIndex}.${ext}`;
 
           const { error: uploadError } = await supabase.storage
             .from("product-images")
-            .upload(fileName, imgFile);
+            .upload(fileName, compressed);
 
           if (uploadError) return null;
 
@@ -381,12 +384,13 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
 
         if (!groupError && groupData) {
           const uploads = rootFiles.map(async (imgFile, imgIndex) => {
-            const ext = imgFile.name.split(".").pop() || "png";
+            const compressed = await compressImage(imgFile);
+            const ext = compressed.name.split(".").pop() || "webp";
             const fileName = `qc-${id}-${groupData.id}-${Date.now()}-${imgIndex}.${ext}`;
 
             const { error: uploadError } = await supabase.storage
               .from("product-images")
-              .upload(fileName, imgFile);
+              .upload(fileName, compressed);
 
             if (uploadError) return null;
 
@@ -490,15 +494,14 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
 
     const fileArray = files instanceof FileList ? Array.from(files) : files;
 
-    const uploads = fileArray.map(async (file, index) => {
-       if (!file.type.startsWith("image/")) return null;
+     const uploads = fileArray.map(async (file, index) => {
+        const compressed = await compressImage(file);
+        const ext = compressed.name.split(".").pop() || "webp";
+        const fileName = `qc-${id}-${groupId}-${Date.now()}-${index}.${ext}`;
 
-       const ext = file.name.split(".").pop() || "png";
-       const fileName = `qc-${id}-${groupId}-${Date.now()}-${index}.${ext}`;
-
-       const { error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(fileName, file);
+        const { error: uploadError } = await supabase.storage
+           .from("product-images")
+           .upload(fileName, compressed);
 
        if (uploadError) {
           console.error("Upload failed", uploadError);

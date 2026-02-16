@@ -9,17 +9,13 @@ import { createClient } from "@/lib/supabase/client";
 export async function recordView(userId: string, productId: number): Promise<void> {
   const supabase = createClient();
 
-  // Delete existing entry first, then insert — sequential to avoid race
+  // Atomic upsert — no race condition between delete and insert
   await supabase
     .from("view_history")
-    .delete()
-    .eq("user_id", userId)
-    .eq("product_id", productId);
-
-  await supabase.from("view_history").insert({
-    user_id: userId,
-    product_id: productId,
-  });
+    .upsert(
+      { user_id: userId, product_id: productId, viewed_at: new Date().toISOString() },
+      { onConflict: "user_id,product_id" }
+    );
 }
 
 /**

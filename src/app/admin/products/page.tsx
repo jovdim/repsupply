@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getProducts, getAdminProducts, ProductFromDB } from "@/lib/supabase/products";
 import { getCategories } from "@/lib/supabase/categories";
 import { invalidateAdminCache } from "@/lib/supabase/admin";
+import { compressImage } from "@/lib/imageUtils";
 
 import { 
   Plus, 
@@ -257,12 +258,14 @@ export default function AdminProductsPage() {
 
     setUploading(true);
     
-    const ext = file.name.split(".").pop() || "png";
+    // Compress image before upload (saves storage & egress)
+    const compressed = await compressImage(file);
+    const ext = compressed.name.split(".").pop() || "webp";
     const fileName = `product-${editingProduct?.id || "new"}-${Date.now()}.${ext}`;
     
     const { data, error } = await supabase.storage
       .from("product-images")
-      .upload(fileName, file, { upsert: true });
+      .upload(fileName, compressed, { upsert: true });
 
     if (error) {
       console.error("Upload error:", error);

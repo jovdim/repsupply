@@ -7,6 +7,7 @@ import { ArrowLeft, Save, Upload, X, Image as ImageIcon, Check, Link2, AlertCirc
 import Link from "next/link";
 import Image from "next/image";
 import { convertLink } from "@/lib/linkConverter";
+import { compressImage } from "@/lib/imageUtils";
 
 interface Category {
   id: number;
@@ -71,12 +72,14 @@ export default function NewProductPage() {
     setUploading(true);
     const supabase = createClient();
     
-    const ext = file.name.split(".").pop() || "png";
+    // Compress image before upload
+    const compressed = await compressImage(file);
+    const ext = compressed.name.split(".").pop() || "webp";
     const fileName = `product-new-${Date.now()}.${ext}`;
     
     const { data, error } = await supabase.storage
       .from("product-images")
-      .upload(fileName, file, { upsert: true });
+      .upload(fileName, compressed, { upsert: true });
 
     if (error) {
       console.error("Upload error:", error);

@@ -147,9 +147,9 @@ function checkRateLimit(
   };
 }
 
-// --- Middleware Function ---
+// --- Proxy Function (Next.js 16: renamed from middleware → proxy) ---
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

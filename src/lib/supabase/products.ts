@@ -39,10 +39,9 @@ function transformProduct(p: any): ProductFromDB {
   };
 }
 
-/** Only select columns we actually use — saves egress */
+/** Shared select query for product + categories */
 const PRODUCT_COLUMNS = `
-  id, slug, name, price, image, link, description, badge,
-  is_featured, is_best_seller, created_at,
+  *,
   product_categories (
     categories ( name, slug )
   )
@@ -203,6 +202,100 @@ export async function getAllProductsLight(): Promise<ProductFromDB[]> {
 }
 
 /**
+ * Paginated product fetch with server-side filtering.
+ * Used by the infinite scroll products page.
+ * Each page is cached independently with a short TTL.
+ */
+export interface PaginatedResult {
+  products: ProductFromDB[];
+  totalCount: number;
+  hasMore: boolean;
+}
+
+export async function getProductsPaginated(
+  page: number = 0,
+  pageSize: number = 20,
+  filters?: {
+    category?: string;
+    search?: string;
+    filter?: "all" | "featured" | "best_seller";
+  }
+): Promise<PaginatedResult> {
+  const category = filters?.category && filters.category.toLowerCase() !== "all" ? filters.category : undefined;
+  const search = filters?.search?.trim() || undefined;
+  const filterType = filters?.filter || "all";
+
+  // Build a cache key that includes all filter params
+  const cacheKey = `products:page:${page}:${pageSize}:${filterType}:${category || "all"}:${search || ""}`;
+
+  return smartFetch<PaginatedResult>(cacheKey, async () => {
+    const supabase = createClient();
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
+    // Build the query
+    let query = supabase
+      .from("products")
+      .select(PRODUCT_COLUMNS, { count: "exact" });
+
+    // Apply server-side filters
+    if (filterType === "featured") {
+      query = query.eq("is_featured", true);
+    } else if (filterType === "best_seller") {
+      query = query.eq("is_best_seller", true);
+    }
+
+    // Server-side text search
+    if (search) {
+      query = query.ilike("name", `%${search}%`);
+    }
+
+    // Server-side category filter via inner join
+    if (category) {
+      // Use a subquery to filter by category name through the join table
+      const { data: catData } = await supabase
+        .from("categories")
+        .select("id")
+        .ilike("name", category)
+        .single();
+
+      if (catData) {
+        const { data: productIds } = await supabase
+          .from("product_categories")
+          .select("product_id")
+          .eq("category_id", catData.id);
+
+        if (productIds && productIds.length > 0) {
+          query = query.in("id", productIds.map((p: any) => p.product_id));
+        } else {
+          // No products in this category
+          return { products: [], totalCount: 0, hasMore: false };
+        }
+      } else {
+        return { products: [], totalCount: 0, hasMore: false };
+      }
+    }
+
+    // Apply pagination and ordering
+    const { data: products, error, count } = await query
+      .order("id", { ascending: false })
+      .range(from, to);
+
+    if (error || !products) {
+      console.error("Error fetching paginated products:", error);
+      return { products: [], totalCount: 0, hasMore: false };
+    }
+
+    const totalCount = count || 0;
+    return {
+      products: products.map(transformProduct),
+      totalCount,
+      hasMore: from + products.length < totalCount,
+    };
+  }, TTL.SHORT);
+}
+
+/**
  * Fetch all products for admin management. Cached for 5 minutes.
  */
 export async function getAdminProducts(): Promise<any[]> {
@@ -211,10 +304,12 @@ export async function getAdminProducts(): Promise<any[]> {
     const { data, error } = await supabase
       .from("products")
       .select(`
-        id, slug, name, price, image, is_featured, is_best_seller,
-        link, description, created_at,
+        *,
         product_categories (
-          categories ( id, name )
+          categories (
+            id,
+            name
+          )
         ),
         qc_groups(count)
       `)

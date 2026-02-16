@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { compressImage } from "@/lib/imageUtils";
 
 interface YupooStore {
   id: number;
@@ -75,12 +76,13 @@ export default function AdminYupooStoresPage() {
 
     setUploading(true);
     
-    const ext = file.name.split(".").pop() || "png";
+    const compressed = await compressImage(file);
+    const ext = compressed.name.split(".").pop() || "webp";
     const fileName = `yupoo-${Date.now()}.${ext}`;
 
     const { error } = await supabase.storage
       .from("product-images")
-      .upload(fileName, file);
+      .upload(fileName, compressed);
 
     if (error) {
       console.error("Upload error:", error);

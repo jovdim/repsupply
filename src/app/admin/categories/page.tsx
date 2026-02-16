@@ -7,6 +7,7 @@ import { invalidateAdminCache } from "@/lib/supabase/admin";
 import { Plus, Search, Settings, Trash2, Star, GripVertical, X, Check, Image as ImageIcon, Upload, Loader2, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { compressImage } from "@/lib/imageUtils";
 
 export default function AdminCategoriesPage() {
   const router = useRouter();
@@ -71,12 +72,13 @@ export default function AdminCategoriesPage() {
 
     setUploading(true);
     
-    const ext = file.name.split(".").pop() || "png";
+    const compressed = await compressImage(file);
+    const ext = compressed.name.split(".").pop() || "webp";
     const fileName = `category-${Date.now()}.${ext}`;
 
     const { error } = await supabase.storage
       .from("product-images") // Re-using product-images bucket for simplicity
-      .upload(fileName, file);
+      .upload(fileName, compressed);
 
     if (error) {
       console.error("Upload error:", error);
