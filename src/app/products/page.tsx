@@ -61,12 +61,25 @@ function ProductsContent() {
   useEffect(() => {
     const catParam = searchParams.get("category");
     const filterParam = searchParams.get("filter") as FilterType | null;
+    const searchParam = searchParams.get("search");
     
     // Sync Category: if param exists, set it; otherwise reset to "All"
     if (catParam) {
       if (catParam !== selectedCategory) setSelectedCategory(catParam);
     } else {
       if (selectedCategory !== "All") setSelectedCategory("All");
+    }
+
+    // Sync Search: if param exists, set it
+    if (searchParam) {
+      setSearchQuery(searchParam);
+      setDebouncedSearch(searchParam);
+    } else {
+       // Only clear if empty, to allow internal clearing
+       if (searchQuery) {
+         setSearchQuery("");
+         setDebouncedSearch("");
+       }
     }
 
     // Sync Filter: if param exists and is valid, set it; otherwise reset to "all"
@@ -78,7 +91,7 @@ function ProductsContent() {
     } else {
       if (activeFilter !== "all") setActiveFilter("all");
     }
-  }, [searchParams, selectedCategory, activeFilter]);
+  }, [searchParams, selectedCategory, activeFilter, searchQuery]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -548,7 +561,7 @@ function ProductsContent() {
                     <div className="font-bold text-white text-sm md:text-base mb-0.5">
                         {product.price}
                     </div>
-                    <h3 className="text-text-muted text-xs md:text-sm line-clamp-1 group-hover:text-white transition-colors">
+                    <h3 className="text-text-muted text-[10px] md:text-sm line-clamp-2 group-hover:text-white transition-colors">
                         {product.name}
                     </h3>
                     </div>
@@ -561,33 +574,35 @@ function ProductsContent() {
                 <Link
                     key={product.id}
                     href={`/products/${product.slug}`}
-                    className="group bg-bg-card border border-white/5 rounded-xl p-3 md:p-4 flex items-center gap-3 md:gap-4 hover:border-white/20 transition-all cursor-pointer"
+                    className="group bg-bg-card border border-white/5 rounded-xl p-3 md:p-4 flex items-center gap-3 md:gap-4 hover:border-white/20 hover:shadow-lg hover:bg-neutral-800/50 active:scale-[0.99] transition-all cursor-pointer"
                 >
-                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden bg-neutral-900 flex-shrink-0">
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden bg-neutral-900 flex-shrink-0 border border-white/5">
                     <ImageWithSkeleton
                         src={product.image}
                         alt={product.name}
                         fill
                         quality={75}
                         sizes="80px"
-                        className="object-cover"
+                        className="object-cover group-hover:scale-110 transition-transform duration-500"
                     />
+                    {product.is_featured && (
+                      <div className="absolute top-1 left-1 bg-white/90 text-black text-[8px] font-bold px-1 py-0.5 rounded flex items-center justify-center shadow-sm">
+                        <Star className="w-2 h-2 fill-current" />
+                      </div>
+                    )}
                     </div>
                     <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-text-primary text-sm md:text-base mb-0.5">
+                    <h3 className="font-bold text-text-primary text-[10px] md:text-base line-clamp-2 group-hover:text-white transition-colors">
                         {product.name}
                     </h3>
-                    <div className="flex items-center gap-3 text-xs md:text-sm text-text-muted">
-                        <span className="capitalize">{product.categories[0] || ""}</span>
-                        {product.is_featured && (
-                          <span className="flex items-center gap-0.5 text-amber-400">
-                            <Star className="w-3 h-3 fill-current" /> Featured
-                          </span>
-                        )}
+                    <div className="flex items-center gap-3 text-[10px] md:text-sm text-text-muted mt-1">
+                        <span className="capitalize px-2 py-0.5 rounded-full bg-white/5 border border-white/5">
+                           {product.categories[0] || "Uncategorized"}
+                        </span>
                     </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                    <span className="block text-lg md:text-xl font-bold text-white">
+                    <span className="block text-sm md:text-xl font-bold text-white bg-white/10 px-2 py-1 rounded-lg">
                         {product.price}
                     </span>
                     </div>

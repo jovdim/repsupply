@@ -39,6 +39,7 @@ export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<ProductFromDB[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [categories, setCategories] = useState<CategoryFromDB[]>([]);
+  const [allCategories, setAllCategories] = useState<CategoryFromDB[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [bestSellers, setBestSellers] = useState<ProductFromDB[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,6 +86,7 @@ export default function Home() {
       setBestSellers(sellers);
       setLoadingProducts(false);
       setCategories(featuredCats);
+      setAllCategories(allCats);
       setLoadingCategories(false);
     }
     fetchData();
@@ -130,7 +132,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* HERO SECTION - Grand & Centered */}
-      <div className="relative pt-32 pb-4 md:pt-40 md:pb-6 px-4 text-center overflow-hidden">
+      <div className="relative pt-24 pb-4 md:pt-40 md:pb-6 px-4 text-center overflow-hidden">
         {/* Background Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-500px h-500px bg-white/5 blur-[100px] rounded-full pointer-events-none" />
 
@@ -138,7 +140,7 @@ export default function Home() {
           REPSUPPLY
         </h1>
         <p className="relative text-xl md:text-2xl lg:text-3xl xl:text-4xl font-medium text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
-          Reps redefined, Quality find.
+          Reps defined, Quality find.
         </p>
       </div>
 
@@ -283,34 +285,13 @@ export default function Home() {
                 <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none" />
                 <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none" />
                 <div className="trending-scroll flex gap-2 overflow-x-auto scrollbar-hide pb-1 px-2">
-                  {[
-                    "Nike",
-                    "Supreme",
-                    "Jordan",
-                    "Yeezy",
-                    "Chrome Hearts",
-                    "Bape",
-                    "Stussy",
-                    "Palace",
-                    "Off-White",
-                    "Stone Island",
-                    "Fear of God",
-                    "Travis Scott",
-                    "Louis Vuitton",
-                    "Gucci",
-                    "Balenciaga",
-                    "Moncler",
-                    "Canada Goose",
-                    "The North Face",
-                    "Carhartt",
-                    "Represent",
-                  ].map((term) => (
+                  {allCategories.map((cat) => (
                     <span
-                      key={term}
-                      onClick={() => handleSearch(term)}
+                      key={cat.id}
+                      onClick={() => router.push(`/products?category=${encodeURIComponent(cat.name)}`)}
                       className="bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full text-text-secondary hover:text-white cursor-pointer transition-all duration-200 text-sm border border-white/10 whitespace-nowrap flex-shrink-0"
                     >
-                      {term}
+                      {cat.name}
                     </span>
                   ))}
                 </div>
@@ -364,7 +345,7 @@ export default function Home() {
                 <div className="font-bold text-white text-base mb-1">
                   {product.price}
                 </div>
-                <h3 className="text-text-muted text-sm line-clamp-1 group-hover:text-white transition-colors">
+                <h3 className="text-text-muted text-[10px] md:text-sm line-clamp-2 group-hover:text-white transition-colors">
                   {product.name}
                 </h3>
               </div>
@@ -388,76 +369,74 @@ export default function Home() {
         <h2 className="text-lg md:text-2xl font-semibold text-[var(--color-text-heading)] text-center mb-6 md:mb-8 uppercase tracking-wider">
           Browse Categories
         </h2>
-        <div className="relative">
-          {/* Fade effects for scroll indication on mobile */}
-          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none md:hidden" />
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none md:hidden" />
+          <div className="relative group">
+           {/* Desktop Nav Buttons */}
+            <button
+              className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 w-10 h-10 bg-bg-card border border-white/10 rounded-full items-center justify-center hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 shadow-xl"
+              onClick={() => {
+                const container = document.querySelector(".categories-scroll");
+                if (container)
+                  container.scrollBy({ left: -300, behavior: "smooth" });
+              }}
+            >
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </button>
+            <button
+              className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 w-10 h-10 bg-bg-card border border-white/10 rounded-full items-center justify-center hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 shadow-xl"
+              onClick={() => {
+                const container = document.querySelector(".categories-scroll");
+                if (container)
+                  container.scrollBy({ left: 300, behavior: "smooth" });
+              }}
+            >
+              <ChevronRight className="w-5 h-5 text-white" />
+            </button>
 
-          <div className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 overflow-x-auto md:overflow-visible scrollbar-hide pb-2 md:pb-0 px-2 md:px-0">
-            {loadingCategories ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-shrink-0 w-24 md:w-auto aspect-square rounded-xl md:rounded-2xl bg-white/5 animate-pulse border border-white/5"
-                />
-              ))
-            ) : categories.length === 0 ? (
-              <div className="col-span-full text-center py-8 text-text-muted text-sm">No categories yet</div>
-            ) : (
-              categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/products?category=${cat.name}`}
-                  className="group relative flex-shrink-0 w-24 md:w-auto aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-white/10 bg-bg-card cursor-pointer transform hover:scale-105 transition-all duration-500 shadow-lg hover:shadow-2xl"
-                >
-                  {cat.image && (
-                    <ImageWithSkeleton
-                      src={cat.image}
-                      alt={cat.name}
-                      fill
-                      quality={75}
-                      sizes="(max-width: 768px) 96px, 25vw"
-                      className="object-cover group-hover:scale-110 transition-transform duration-700"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-black/40 group-hover:via-black/10 transition-all duration-500" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-sm md:text-lg font-bold text-white tracking-wide drop-shadow-lg group-hover:scale-110 transition-transform duration-300 text-center px-2">
-                      {cat.name}
-                    </span>
-                  </div>
-                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl md:rounded-2xl" />
-                </Link>
-              ))
-            )}
-          </div>
+            <div className="relative overflow-hidden rounded-2xl">
+                {/* Fade effects */}
+                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none" />
 
-          {/* Scroll Buttons - Right side on Mobile */}
-          <div className="flex justify-end mt-1 md:hidden">
-            <div className="flex gap-2">
-              <button
-                className="w-8 h-8 bg-white/3 backdrop-blur-sm border border-white/3 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
-                onClick={() => {
-                  const container = document.querySelector(".overflow-x-auto");
-                  if (container)
-                    container.scrollBy({ left: -120, behavior: "smooth" });
-                }}
-              >
-                <ChevronLeft className="w-4 h-4 text-white/40" />
-              </button>
-              <button
-                className="w-8 h-8 bg-white/3 backdrop-blur-sm border border-white/3 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
-                onClick={() => {
-                  const container = document.querySelector(".overflow-x-auto");
-                  if (container)
-                    container.scrollBy({ left: 120, behavior: "smooth" });
-                }}
-              >
-                <ChevronRight className="w-4 h-4 text-white/40" />
-              </button>
+                <div className="categories-scroll flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide py-4 px-2 md:px-0">
+                    {loadingCategories ? (
+                    Array.from({ length: 10 }).map((_, i) => (
+                        <div
+                        key={i}
+                        className="flex-shrink-0 w-24 md:w-40 aspect-square rounded-xl md:rounded-2xl bg-white/5 animate-pulse border border-white/5"
+                        />
+                    ))
+                    ) : categories.length === 0 ? (
+                    <div className="w-full text-center py-8 text-text-muted text-sm">No categories yet</div>
+                    ) : (
+                    categories.map((cat) => (
+                        <Link
+                        key={cat.id}
+                        href={`/products?category=${cat.name}`}
+                        className="group/card relative flex-shrink-0 w-24 md:w-40 aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-white/10 bg-bg-card cursor-pointer transform hover:scale-105 transition-all duration-500 shadow-lg hover:shadow-2xl"
+                        >
+                        {cat.image && (
+                            <ImageWithSkeleton
+                            src={cat.image}
+                            alt={cat.name}
+                            fill
+                            quality={75}
+                            sizes="(max-width: 768px) 96px, 160px"
+                            className="object-cover group-hover/card:scale-110 transition-transform duration-700"
+                            />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover/card:from-black/60 group-hover/card:via-black/10 transition-all duration-500" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-sm md:text-lg font-bold text-white tracking-wide drop-shadow-lg group-hover/card:scale-110 transition-transform duration-300 text-center px-2">
+                            {cat.name}
+                            </span>
+                        </div>
+                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 rounded-xl md:rounded-2xl" />
+                        </Link>
+                    ))
+                    )}
+                </div>
             </div>
           </div>
-        </div>
       </div>
 
       {/* SUPPORTED AGENTS */}
@@ -514,8 +493,9 @@ export default function Home() {
 
         <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3 mb-16">
           {bestSellers.map((product) => (
-            <div
+            <Link
               key={product.id}
+              href={`/products/${product.slug}`}
               className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
             >
               <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
@@ -532,11 +512,11 @@ export default function Home() {
                 <div className="font-bold text-white text-base mb-1">
                   {product.price}
                 </div>
-                <h3 className="text-text-muted text-sm line-clamp-1 group-hover:text-white transition-colors">
+                <h3 className="text-text-muted text-[10px] md:text-sm line-clamp-2 group-hover:text-white transition-colors">
                   {product.name}
                 </h3>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 

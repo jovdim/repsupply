@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Twitter, Instagram, Github } from "lucide-react";
+import { Instagram } from "lucide-react";
 
 export const Footer = () => {
   return (
@@ -27,13 +27,12 @@ export const Footer = () => {
               </span>
             </Link>
             <p className="text-text-secondary text-sm leading-relaxed">
-              Your trusted source for quality replica products. We curate the
-              best finds from Taobao, Weidian, and 1688.
+              Your source for quality rep products. We find the
+              best reps for you.
             </p>
             <div className="flex items-center gap-4">
-              <a href="#" className="text-text-muted hover:text-white transition-colors"><Twitter className="w-5 h-5" /></a>
+              {/* <a href="#" className="text-text-muted hover:text-white transition-colors"><TikTok className="w-5 h-5" /></a> */}
               <a href="#" className="text-text-muted hover:text-white transition-colors"><Instagram className="w-5 h-5" /></a>
-              <a href="#" className="text-text-muted hover:text-white transition-colors"><Github className="w-5 h-5" /></a>
             </div>
           </div>
 

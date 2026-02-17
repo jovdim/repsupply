@@ -260,21 +260,21 @@ export default function ProductDetailPage({
           {/* Product Info */}
           <div className="flex flex-col justify-center">
             {/* Category badge */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-4">
               {product.categories.map((cat) => (
                 <Link
                   key={cat}
                   href={`/products?category=${encodeURIComponent(cat)}`}
-                  className="text-xs font-medium text-text-muted bg-white/5 px-2.5 py-1 rounded-full capitalize flex items-center gap-1.5 hover:bg-white/10 hover:text-white transition-colors"
+                  className="text-sm font-bold text-white bg-white/10 border border-white/10 px-4 py-1.5 rounded-full capitalize flex items-center gap-2 hover:bg-white/20 hover:border-white/20 transition-all shadow-lg active:scale-95"
                 >
-                  <Tag className="w-3 h-3" />
+                  <Tag className="w-4 h-4 text-amber-400" />
                   {cat}
                 </Link>
               ))}
             </div>
 
             {/* Title */}
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 leading-tight">
+            <h1 className="text-xl  md:text-2xl lg:text-3xl font-bold text-white mb-3 leading-tight">
               {product.name}
             </h1>
 
@@ -298,37 +298,29 @@ export default function ProductDetailPage({
               Buy with Agent
             </Button>
 
-            {/* Share / Copy Link */}
-            <div className="flex items-center gap-3">
+            {/* Share / Save Actions */}
+            <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={handleShare}
-                className="flex items-center gap-2 text-sm text-text-muted hover:text-white transition-colors cursor-pointer"
+                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium transition-all duration-200 cursor-pointer text-sm md:text-base
+                  ${copied 
+                    ? "bg-green-500/10 border-green-500/20 text-green-500" 
+                    : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20"
+                  }`}
               >
-                {copied ? (
-                  <Check className="w-4 h-4 text-success" />
-                ) : (
-                  <Share2 className="w-4 h-4" />
-                )}
-                {copied ? "Link copied!" : "Share"}
+                {copied ? <Check className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
+                {copied ? "Copied" : "Share"}
               </button>
-              {product.link && (
-                <a
-                  href={product.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-text-muted hover:text-white transition-colors"
-                  title="View Original Link"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Original
-                </a>
-              )}
+
               <button
                 onClick={handleToggleFavorite}
-                className={`flex items-center gap-2 text-sm transition-colors cursor-pointer ${isFavorited ? "text-red-500 hover:text-red-400" : "text-text-muted hover:text-white"}`}
-                title="Favorite"
+                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium transition-all duration-200 cursor-pointer text-sm md:text-base
+                  ${isFavorited 
+                    ? "bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500/20" 
+                    : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20"
+                  }`}
               >
-                <Heart className={`w-4 h-4 ${isFavorited ? "fill-current" : ""}`} />
+                <Heart className={`w-5 h-5 ${isFavorited ? "fill-current" : ""}`} />
                 {isFavorited ? "Saved" : "Save"}
               </button>
             </div>
