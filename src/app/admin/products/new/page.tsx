@@ -268,7 +268,7 @@ export default function NewProductPage() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-white/30 outline-none transition-colors"
-                placeholder="e.g. ¥299"
+                placeholder="e.g. 45.00"
               />
             </div>
 

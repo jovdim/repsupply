@@ -928,7 +928,7 @@ export default function AdminProductsPage() {
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-3.5 text-sm text-white focus:border-white/20 focus:bg-neutral-900 outline-none transition-all placeholder:text-neutral-700"
-                    placeholder="e.g. ￥290"
+                    placeholder="e.g. 45.00"
                   />
                 </div>
               </div>
