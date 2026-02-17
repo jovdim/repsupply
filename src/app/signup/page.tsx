@@ -129,14 +129,14 @@ export default function SignUpPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-text-secondary">Full Name</label>
+              <label className="text-xs font-medium text-text-secondary">Username</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
+                  placeholder="your name"
                   required
                   className="w-full bg-black/20 border border-white/10 text-white rounded-xl py-3 pl-11 pr-4 outline-none focus:border-white/30 transition-colors placeholder:text-text-muted text-sm"
                 />
@@ -152,7 +152,7 @@ export default function SignUpPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="your@email.com"
                   required
                   className="w-full bg-black/20 border border-white/10 text-white rounded-xl py-3 pl-11 pr-4 outline-none focus:border-white/30 transition-colors placeholder:text-text-muted text-sm"
                 />
