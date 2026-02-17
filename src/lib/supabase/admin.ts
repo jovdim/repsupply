@@ -4,7 +4,7 @@ import { invalidateProductCache } from "./products";
 
 export interface AdminStats {
   products: number;
-  users: number;
+  qcImages: number;
   categories: number;
   yupooStores: number;
   qcGroups: number;
@@ -20,13 +20,13 @@ export async function getAdminStats(): Promise<AdminStats> {
     
     const [
       { count: productsCount },
-      { count: usersCount },
+      { count: qcImagesCount },
       { count: categoriesCount },
       { count: yupooStoresCount },
       { count: qcGroupsCount },
     ] = await Promise.all([
       supabase.from("products").select("id", { count: "exact", head: true }),
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      supabase.from("qc_images").select("id", { count: "exact", head: true }),
       supabase.from("categories").select("id", { count: "exact", head: true }),
       supabase.from("yupoo_stores").select("id", { count: "exact", head: true }),
       supabase.from("qc_groups").select("id", { count: "exact", head: true }),
@@ -34,7 +34,7 @@ export async function getAdminStats(): Promise<AdminStats> {
 
     return {
       products: productsCount || 0,
-      users: usersCount || 0,
+      qcImages: qcImagesCount || 0,
       categories: categoriesCount || 0,
       yupooStores: yupooStoresCount || 0,
       qcGroups: qcGroupsCount || 0,

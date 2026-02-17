@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Package, Users, Tags, Star, ImageIcon, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Store, ArrowLeft } from "lucide-react";
+import { Package, Users, Tags, Star, ImageIcon, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Store, ArrowLeft, Layers } from "lucide-react";
 import { getAdminStats, getRecentProducts, type AdminStats } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<AdminStats>({
     products: 0,
-    users: 0,
+    qcImages: 0,
     categories: 0,
     yupooStores: 0,
     qcGroups: 0,
@@ -59,8 +59,8 @@ export default function AdminDashboardPage() {
     { label: "Products", value: stats.products, icon: Package, href: "/admin/products" },
     { label: "Categories", value: stats.categories, icon: Tags, href: "/admin/categories" },
     { label: "Yupoo Stores", value: stats.yupooStores, icon: Store, href: "/admin/yupoo-stores" },
-    { label: "Users", value: stats.users, icon: Users, href: "/admin/users" },
-    { label: "QC Groups", value: stats.qcGroups, icon: ImageIcon, href: "/admin/qc-images" },
+    { label: "Total Images", value: stats.qcImages, icon: ImageIcon, href: "#" }, // No direct link for images yet, or point to qc-images?
+    { label: "QC Sets", value: stats.qcGroups, icon: Layers, href: "/admin/qc-images" },
   ];
 
   return (
