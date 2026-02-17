@@ -61,13 +61,22 @@ function ProductsContent() {
   useEffect(() => {
     const catParam = searchParams.get("category");
     const filterParam = searchParams.get("filter") as FilterType | null;
-    if (catParam && catParam !== selectedCategory) setSelectedCategory(catParam);
+    
+    // Sync Category: if param exists, set it; otherwise reset to "All"
+    if (catParam) {
+      if (catParam !== selectedCategory) setSelectedCategory(catParam);
+    } else {
+      if (selectedCategory !== "All") setSelectedCategory("All");
+    }
+
+    // Sync Filter: if param exists and is valid, set it; otherwise reset to "all"
     if (
       filterParam &&
-      filterParam !== activeFilter &&
-      ["all", "featured", "best_seller"].includes(filterParam)
+      ["featured", "best_seller"].includes(filterParam)
     ) {
-      setActiveFilter(filterParam);
+      if (filterParam !== activeFilter) setActiveFilter(filterParam);
+    } else {
+      if (activeFilter !== "all") setActiveFilter("all");
     }
   }, [searchParams, selectedCategory, activeFilter]);
 
@@ -156,34 +165,69 @@ function ProductsContent() {
 
   const displayedProducts = products;
 
+  /* 
+   * Filter Handlers
+   * We use URL-driven state to avoid race conditions (flickering).
+   * Handlers update the URL; the useEffect above syncs the State.
+   */
+
   const handleClearFilters = () => {
-    setSearchQuery("");
-    setSelectedCategory("All");
-    setActiveFilter("all");
+    // Only local state that needs explicit clearing if not watched by effect
+    // But debouncedSearch is watched by fetch effect, searchQuery is input
+    setSearchQuery(""); 
+    
+    // Reset URL to base
     router.replace("/products", { scroll: false });
+    // useEffect will see empty params and reset selectedCategory/activeFilter to All/all
   };
 
   const hasActiveFilters = searchQuery || selectedCategory !== "All" || activeFilter !== "all";
 
   const handleFilterChange = (filter: FilterType) => {
-    setActiveFilter(filter);
-    // Update URL without full page reload
-    const params = new URLSearchParams();
-    if (filter !== "all") params.set("filter", filter);
-    if (selectedCategory !== "All") params.set("category", selectedCategory);
+    // Check CURRENT URL state (not potentially stale local state) for toggle logic
+    const currentFilterParam = searchParams.get("filter") || "all";
+    
+    // If clicking "all", always set to "all". 
+    // If clicking others, toggle: same -> all, diff -> new
+    let newFilter: FilterType = "all";
+    
+    if (filter === "all") {
+      newFilter = "all";
+    } else {
+      newFilter = currentFilterParam === filter ? "all" : filter;
+    }
+    
+    // Update URL params directly (preserves other params like category automatically)
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (newFilter !== "all") {
+      params.set("filter", newFilter);
+    } else {
+      params.delete("filter");
+    }
+
+    // No need to manually re-add category from state; it's already in 'params'
+    // No setState here -> relies on useEffect to update UI
     const qs = params.toString();
     router.replace(`/products${qs ? `?${qs}` : ""}`, { scroll: false });
   };
 
   const handleCategoryChange = (cat: string) => {
-    setSelectedCategory(cat);
-    const params = new URLSearchParams();
-    if (activeFilter !== "all") params.set("filter", activeFilter);
-    if (cat !== "All") params.set("category", cat);
+    // Update URL params directly
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (cat !== "All") {
+      params.set("category", cat);
+    } else {
+      params.delete("category");
+    }
+
+    // No need to manually re-add filter from state; it's already in 'params'
+    // No setState here -> relies on useEffect to update UI
     const qs = params.toString();
     router.replace(`/products${qs ? `?${qs}` : ""}`, { scroll: false });
   };
-
+  
   const scrollCategories = (direction: "left" | "right") => {
     if (categoryScrollRef.current) {
       categoryScrollRef.current.scrollBy({
@@ -266,10 +310,10 @@ function ProductsContent() {
                 <button
                   key={f.key}
                   onClick={() => handleFilterChange(f.key)}
-                  className={`flex items-center gap-1 text-xs font-medium whitespace-nowrap px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 text-xs font-medium whitespace-nowrap px-3 py-1.5 rounded-full transition-all cursor-pointer border ${
                     activeFilter === f.key
-                      ? "bg-white text-black"
-                      : "bg-white/5 text-text-secondary hover:bg-white/10"
+                      ? "bg-white/10 text-white border-white/20 shadow-sm"
+                      : "bg-transparent border-transparent text-text-secondary hover:bg-white/5"
                   }`}
                 >
                   <f.icon className="w-3 h-3" />
@@ -289,7 +333,7 @@ function ProductsContent() {
                     onClick={() => handleCategoryChange(cat)}
                     className={`text-xs font-medium whitespace-nowrap px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                       selectedCategory === cat
-                        ? "bg-white/20 text-white border border-white/20"
+                        ? "bg-white/20 text-white"
                         : "bg-white/5 text-text-secondary hover:bg-white/10"
                     }`}
                   >
@@ -337,10 +381,10 @@ function ProductsContent() {
                       <button
                         key={f.key}
                         onClick={() => handleFilterChange(f.key)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer border ${
                           activeFilter === f.key
-                            ? "bg-white text-black"
-                            : "text-text-muted hover:text-white"
+                            ? "bg-white/10 text-white border-white/20 shadow-sm"
+                            : "bg-transparent border-transparent text-text-muted hover:text-white hover:bg-white/5"
                         }`}
                       >
                         <f.icon className="w-3.5 h-3.5" />
@@ -400,7 +444,7 @@ function ProductsContent() {
                         onClick={() => handleCategoryChange(cat)}
                         className={`text-sm font-medium whitespace-nowrap px-4 py-1.5 rounded-full transition-all cursor-pointer ${
                           selectedCategory === cat
-                            ? "bg-white/20 text-white border border-white/20"
+                            ? "bg-white/20 text-white"
                             : "bg-white/5 text-text-secondary hover:bg-white/10 hover:text-white"
                         }`}
                       >
@@ -419,7 +463,7 @@ function ProductsContent() {
 
               {/* Results count */}
               <div className="mt-3 flex items-center justify-between text-xs text-text-muted px-1">
-                <span>{totalCount > 0 ? `${products.length} of ${totalCount} products` : `${products.length} products`}</span>
+                <span>{/* Count hidden */}</span>
                 <div className="flex items-center gap-2">
                   {activeFilter !== "all" && (
                     <span className="bg-white/5 px-2 py-0.5 rounded-full">
@@ -451,7 +495,7 @@ function ProductsContent() {
         <div className="px-4 md:px-12 lg:px-20 xl:px-24">
             {/* Results count - mobile */}
             <div className="md:hidden flex items-center justify-between px-2 py-2">
-               <span className="text-xs text-text-muted">{totalCount > 0 ? `${products.length} of ${totalCount}` : `${products.length} products`}</span>
+               <span className="text-xs text-text-muted">{/* Count hidden */}</span>
                {hasActiveFilters && (
                   <button onClick={handleClearFilters} className="text-xs text-white underline underline-offset-4">
                      Clear
@@ -567,7 +611,7 @@ function ProductsContent() {
             {/* End of results */}
             {!loading && !hasMore && products.length > 0 && (
               <div className="text-center py-6 text-text-muted text-xs">
-                All {totalCount} products loaded
+                All products loaded
               </div>
             )}
 
