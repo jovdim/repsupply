@@ -297,30 +297,44 @@ export async function getProductsPaginated(
 
 /**
  * Fetch all products for admin management. Cached for 5 minutes.
+ * Uses batched fetching to bypass Supabase's 1000-row default limit.
  */
 export async function getAdminProducts(): Promise<any[]> {
   return smartFetch<any[]>("admin:products_list", async () => {
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("products")
-      .select(`
-        *,
-        product_categories (
-          categories (
-            id,
-            name
-          )
-        ),
-        qc_groups(count)
-      `)
-      .order("id", { ascending: false });
+    const PAGE_SIZE = 1000;
+    let allData: any[] = [];
+    let from = 0;
 
-    if (error) {
-      console.error("Error fetching admin products:", error);
-      return [];
+    while (true) {
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          *,
+          product_categories (
+            categories (
+              id,
+              name
+            )
+          ),
+          qc_groups(count)
+        `)
+        .order("id", { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error) {
+        console.error("Error fetching admin products:", error);
+        return allData;
+      }
+
+      if (!data || data.length === 0) break;
+      allData = allData.concat(data);
+
+      if (data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
     }
 
-    return data || [];
+    return allData;
   }, TTL.SHORT);
 }
 

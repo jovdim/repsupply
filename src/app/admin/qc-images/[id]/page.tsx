@@ -113,7 +113,18 @@ export default function ManageQcImagesPage() {
         window.removeEventListener("dragenter", handleDragEnter);
         window.removeEventListener("dragleave", handleDragLeave);
      };
-  }, []);
+   }, []);
+
+  // Warn before reload/close during upload
+  useEffect(() => {
+    if (!isCreatingGroupUpload && uploadingGroupId === null) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isCreatingGroupUpload, uploadingGroupId]);
 
   async function fetchData() {
     setLoading(true);

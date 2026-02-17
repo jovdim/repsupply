@@ -110,6 +110,16 @@ export default function AdminProductsPage() {
     fetchData();
   }, []);
 
+  // Lock body scroll when sidebar is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isModalOpen]);
+
   async function fetchData() {
     setLoading(true);
     
@@ -524,7 +534,8 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in relative pb-20">
+    <div className="relative">
+      <div className="space-y-6 animate-fade-in pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button 
@@ -857,6 +868,7 @@ export default function AdminProductsPage() {
             )}
           </>
         )}
+      </div>
       </div>
 
       {/* Form Sidebar */}

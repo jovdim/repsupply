@@ -44,6 +44,16 @@ export default function AdminCategoriesPage() {
     fetchCategories();
   }, []);
 
+  // Lock body scroll when sidebar is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isModalOpen]);
+
   function handleOpenModal(category?: Category) {
     if (category) {
       setEditingCategory(category);
@@ -527,10 +537,10 @@ export default function AdminCategoriesPage() {
                       ? "bg-red-500 text-white animate-pulse" 
                       : "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
                   }`}
-                  title={isDeleting ? "Confirm Delete" : "Delete Category"}
+                  title={isDeleting ? "This will remove the tag from all associated products" : "Delete Category"}
                 >
                   {isDeleting ? <Trash2 className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
-                  <span className="truncate">{isDeleting ? "Sure?" : "Delete"}</span>
+                   <span className="truncate">{isDeleting ? "Sure?" : "Delete"}</span>
                 </button>
               )}
 
