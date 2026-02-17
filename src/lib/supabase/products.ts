@@ -60,7 +60,7 @@ export async function getProducts(
     const { data: products, error } = await supabase
       .from("products")
       .select(PRODUCT_COLUMNS)
-      .order("id", { ascending: true });
+      .order("id", { ascending: false });
 
     if (error || !products) {
       console.error("Error fetching products:", error);
@@ -98,7 +98,7 @@ export async function getFeaturedProducts(
       .from("products")
       .select(PRODUCT_COLUMNS)
       .eq("is_featured", true)
-      .order("id", { ascending: true })
+      .order("id", { ascending: false })
       .limit(limit);
 
     if (error || !products) {
@@ -122,7 +122,7 @@ export async function getBestSellers(
       .from("products")
       .select(PRODUCT_COLUMNS)
       .eq("is_best_seller", true)
-      .order("id", { ascending: true })
+      .order("id", { ascending: false })
       .limit(limit);
 
     if (error || !products) {

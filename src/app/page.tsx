@@ -43,6 +43,7 @@ export default function Home() {
   const [bestSellers, setBestSellers] = useState<ProductFromDB[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ProductFromDB[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -56,6 +57,7 @@ export default function Home() {
       } else {
         setSearchResults([]);
       }
+      setIsSearching(false);
     }
     fetchSearch();
   }, [debouncedSearch]);
@@ -94,7 +96,7 @@ export default function Home() {
 
   const faqs = [
     {
-      question: "What are replicas and how do they work?",
+      question: "What are reps and how do they work?",
       answer:
         "Replicas are high-quality reproductions of designer fashion items. We connect you with trusted agents who source authentic-looking pieces at affordable prices from overseas manufacturers.",
     },
@@ -154,6 +156,7 @@ export default function Home() {
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
+                  if (e.target.value.trim()) setIsSearching(true);
                   setShowDropdown(true);
                 }}
                 onKeyDown={(e) => {
@@ -246,9 +249,11 @@ export default function Home() {
                     </div>
                   </>
                 ) : (
-                  <div className="p-8 text-center text-text-muted">
-                    <p className="text-sm">No products found matching "{searchQuery}"</p>
-                  </div>
+                  !isSearching && (
+                    <div className="p-8 text-center text-text-muted">
+                      <p className="text-sm">No products found matching "{searchQuery}"</p>
+                    </div>
+                  )
                 )}
               </div>
             )}
@@ -326,7 +331,7 @@ export default function Home() {
       </div>
 
       {/* FEATURED PRODUCTS */}
-      <div className="mb-8 md:mb-16 px-4 md:max-w-7xl md:mx-auto py-4 md:py-8">
+      <div className="mb-8  px-4 md:max-w-7xl md:mx-auto py-4 md:py-8">
         <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
           {loadingProducts ? (
             Array.from({ length: 10 }).map((_, i) => (
@@ -379,7 +384,7 @@ export default function Home() {
       </div>
 
    {/* SHOP BY CATEGORY */}
-      <div className="max-w-7xl mx-auto px-4 py-8 md:py-16 mb-8 md:mb-16">
+      <div className="max-w-7xl mx-auto px-4 py-8  mb-8 ">
         <h2 className="text-lg md:text-2xl font-semibold text-[var(--color-text-heading)] text-center mb-6 md:mb-8 uppercase tracking-wider">
           Browse Categories
         </h2>
@@ -456,7 +461,7 @@ export default function Home() {
       </div>
 
       {/* SUPPORTED AGENTS */}
-      <div className="py-8 md:py-16 mb-8 md:mb-16">
+      <div className="py-8  mb-8 md:py-16">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-lg md:text-2xl font-semibold text-[var(--color-text-heading)] text-center mb-10 uppercase tracking-wider">
             Supported Agents
@@ -502,7 +507,7 @@ export default function Home() {
    
 
       {/* HOT PRODUCTS */}
-      <div className="px-4 md:max-w-7xl md:mx-auto py-8 md:py-16 mb-8 md:mb-16">
+      <div className="px-4 md:max-w-7xl md:mx-auto py-8  mb-8 ">
         <h2 className="text-xl md:text-2xl font-semibold text-[var(--color-text-heading)] text-center mb-8 md:mb-12 uppercase tracking-wider">
           Best Sellers
         </h2>
@@ -546,7 +551,7 @@ export default function Home() {
       </div>
 
       {/* FREQUENTLY ASKED QUESTIONS */}
-      <div className="py-8 md:py-16 mb-8 md:mb-16">
+      <div className="py-8  mb-8 ">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-xl md:text-2xl font-semibold text-[var(--color-text-heading)] text-center mb-8 md:mb-12 uppercase tracking-wider">
@@ -599,7 +604,7 @@ export default function Home() {
       </div>
 
       {/* NEED HELP */}
-      <div className="py-8 md:py-16 mb-8 md:mb-16">
+      <div className="py-8  mb-8 ">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center">
             <h2 className="text-xl md:text-2xl font-semibold text-[var(--color-text-heading)] text-center mb-8 md:mb-12 uppercase tracking-wider">
