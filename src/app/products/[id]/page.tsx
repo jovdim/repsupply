@@ -267,7 +267,7 @@ export default function ProductDetailPage({
                   href={`/products?category=${encodeURIComponent(cat)}`}
                   className="text-sm font-bold text-white bg-white/10 border border-white/10 px-4 py-1.5 rounded-full capitalize flex items-center gap-2 hover:bg-white/20 hover:border-white/20 transition-all shadow-lg active:scale-95"
                 >
-                  <Tag className="w-4 h-4 text-amber-400" />
+                  <Tag className="w-4 h-4" />
                   {cat}
                 </Link>
               ))}
