@@ -155,7 +155,7 @@ export default function ProductDetailPage({
             href="/products"
             className="text-text-secondary hover:text-white transition-colors underline underline-offset-4"
           >
-            Back to Marketplace
+            Back
           </Link>
         </div>
       </div>
@@ -237,7 +237,7 @@ export default function ProductDetailPage({
             className="inline-flex items-center gap-2 text-text-muted hover:text-white transition-colors text-sm font-medium cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Marketplace
+            Back
           </button>
         </div>
       </div>
@@ -440,7 +440,7 @@ export default function ProductDetailPage({
             <div className="bg-bg-card border border-white/5 border-dashed rounded-2xl py-12 text-center">
               <ImageIcon className="w-8 h-8 text-neutral-600 mx-auto mb-3" />
               <p className="text-white font-medium mb-1">No QC Photos available yet</p>
-              <p className="text-text-secondary text-sm">Photos will appear here once they are verified.</p>
+           
             </div>
           )}
         </div>

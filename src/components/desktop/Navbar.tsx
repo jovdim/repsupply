@@ -129,7 +129,7 @@ export const Navbar = () => {
                 onMouseLeave={handleMouseLeave}
                 className="flex items-center px-4 py-2 text-text-secondary hover:text-text-primary"
               >
-                <span>More Tools</span>
+                <span>More</span>
                 <ChevronDown
                   className={`w-4 h-4 ml-1 transition-transform ${
                     isToolsOpen ? "rotate-180" : ""

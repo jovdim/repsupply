@@ -25,7 +25,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 export default function ProfilePage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"saved" | "history" | "account">("saved");
+  const [activeTab, setActiveTab] = useState<"saved" | "history" | "account">("history");
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Password change state
@@ -160,8 +160,8 @@ export default function ProfilePage() {
         {/* Tabs */}
         <div className="flex border-b border-white/5 mb-8">
           {[
-            { key: "saved" as const, icon: Heart, label: "Saved" },
             { key: "history" as const, icon: Clock, label: "Recently Viewed" },
+            { key: "saved" as const, icon: Heart, label: "Saved" },
             { key: "account" as const, icon: Settings, label: "Account" },
           ].map((tab) => (
             <button

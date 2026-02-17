@@ -81,21 +81,11 @@ export default function ConverterPage() {
   };
 
   return (
-    <div className="min-h-screen pt-24 md:pt-32 pb-12 px-4">
+    <div className="min-h-screen pt-24  pb-12 px-4">
       <div className="max-w-3xl mx-auto">
-        {/* Back Navigation */}
-        <button
-          onClick={() => router.back()}
-          className="mb-8 inline-flex items-center gap-2 text-text-muted hover:text-white transition-colors text-sm font-medium cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </button>
         {/* Header */}
         <div className="text-center mb-10 animate-fade-in">
-          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-bg-card border border-white/10 flex items-center justify-center">
-            <Link2 className="w-8 h-8 text-white" />
-          </div>
+
           <h1 className="text-3xl md:text-4xl font-bold font-[var(--font-poetsen-one)] mb-3 text-text-primary">
             Link Converter
           </h1>

@@ -143,13 +143,6 @@ export const AgentSelector = ({
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="p-3 border-t border-white/5 bg-bg-primary/50 text-center flex-shrink-0">
-          <p className="text-[11px] text-text-muted">
-            Links are affiliated. Thank you for supporting RepSupply!
-          </p>
-        </div>
       </div>
     </div>
   );

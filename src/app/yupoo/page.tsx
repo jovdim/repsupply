@@ -36,7 +36,7 @@ export default function YupooPage() {
                     Yupoo Stores
                     </h1>
                     <p className="text-text-secondary text-sm md:text-base max-w-2xl">
-                    Browse verified Yupoo albums directly.
+                    Browse Yupoo albums directly.
                     </p>
                 </div>
                 
@@ -91,21 +91,14 @@ export default function YupooPage() {
                     </div>
                  )}
                 
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                {/* Gradient Overlay for Text Readability - stronger bottom fade */}
+                <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/80 to-transparent opacity-95 group-hover:opacity-100 transition-opacity" />
 
-                {/* External Link Icon - Centered & Prominent on Hover */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 text-white transform scale-90 group-hover:scale-100 transition-transform">
-                        <ExternalLink className="w-6 h-6" />
-                    </div>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4">
-                    <h3 className="text-white font-bold text-sm md:text-xl truncate transition-colors">
+                <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 z-10">
+                    <h3 className="text-white font-bold text-sm md:text-lg truncate transition-colors drop-shadow-md">
                     {store.name}
                     </h3>
-                    <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-text-muted mt-1 uppercase tracking-wider group-hover:text-white/80 transition-colors">
+                    <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-neutral-300 mt-1 uppercase tracking-wider group-hover:text-white transition-colors">
                         <span>Visit Store</span>
                         <ExternalLink className="w-3 h-3" />
                     </div>
@@ -115,7 +108,7 @@ export default function YupooPage() {
             </div>
         ) : (
             <div className="text-center py-20 text-text-muted">
-                No stores found matching {searchQuery}
+                No stores found matching "{searchQuery}"
             </div>
         )}
       </div>

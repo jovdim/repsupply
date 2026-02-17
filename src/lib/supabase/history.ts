@@ -9,13 +9,20 @@ import { createClient } from "@/lib/supabase/client";
 export async function recordView(userId: string, productId: number): Promise<void> {
   const supabase = createClient();
 
-  // Atomic upsert — no race condition between delete and insert
+  // Robust "upsert": delete old entry if any, then insert new one.
+  // This avoids relying on a specific unique constraint name in the DB.
   await supabase
     .from("view_history")
-    .upsert(
-      { user_id: userId, product_id: productId, viewed_at: new Date().toISOString() },
-      { onConflict: "user_id,product_id" }
-    );
+    .delete()
+    .match({ user_id: userId, product_id: productId });
+
+  await supabase
+    .from("view_history")
+    .insert({
+      user_id: userId,
+      product_id: productId,
+      viewed_at: new Date().toISOString(),
+    });
 }
 
 /**
@@ -33,7 +40,7 @@ export async function getViewHistory(userId: string, limit: number = 20): Promis
     `)
     .eq("user_id", userId)
     .order("viewed_at", { ascending: false })
-    .limit(limit * 2); // Fetch extra to account for potential duplicates
+    .limit(limit * 5); // Fetch extra to account for potential duplicates (old data)
 
   if (error || !data) return [];
 
