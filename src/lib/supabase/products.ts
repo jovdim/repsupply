@@ -19,11 +19,27 @@ export interface ProductFromDB {
 
 /** Shared product transformer */
 function transformProduct(p: any): ProductFromDB {
+  // Format price: Ensure it has $ and 2 decimal places if it's a number
+  let formattedPrice = p.price;
+  const numericPrice = parseFloat(p.price?.toString().replace(/[^0-9.]/g, "") || "0");
+  
+  if (numericPrice > 0) {
+     // If the original string doesn't have a currency symbol (like ¥ or $), add $
+     const hasCurrencySymbol = /[^0-9.,\s]/.test(p.price);
+     
+     if (!hasCurrencySymbol) {
+        formattedPrice = `$${numericPrice.toFixed(2)}`;
+     } else if (p.price.includes("$")) {
+        // If it has $, ensure decimals matches
+        formattedPrice = `$${numericPrice.toFixed(2)}`;
+     }
+  }
+
   return {
     id: p.id,
     slug: p.slug || p.id.toString(),
     name: p.name,
-    price: p.price,
+    price: formattedPrice,
     image: p.image,
     link: p.link,
     description: p.description,
