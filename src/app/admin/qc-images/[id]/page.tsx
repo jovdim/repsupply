@@ -793,7 +793,7 @@ async function handleCreateGroupAndUpload(files: File[] | FileList, groupName: s
                    <FileUp className="w-4 h-4" />
                 </div>
                 <p className="text-sm text-neutral-300">
-                   <span className="font-bold text-white">Tip:</span> Drag & drop a folder, images, or a ZIP file anywhere on the page to create new sets instantly. You can also paste images (Ctrl+V).
+                   <span className="font-bold text-white">Tip:</span> Drag & drop a folder, images, or a ZIP file anywhere on the page to create new sets instantly. 
                  </p>
              </div>
              <div className="flex gap-2">
