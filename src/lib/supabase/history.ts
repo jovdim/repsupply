@@ -1,5 +1,12 @@
 import { createClient } from "@/lib/supabase/client";
 
+function formatPrice(raw: string): string {
+  const num = parseFloat(raw?.toString().replace(/[^0-9.]/g, "") || "0");
+  if (num > 0 && !/[^0-9.,\s]/.test(raw)) return `$${num.toFixed(2)}`;
+  if (num > 0 && raw.includes("$")) return `$${num.toFixed(2)}`;
+  return raw;
+}
+
 /**
  * Record a product view for the current user.
  * Deletes any existing entry first so the product appears only once
@@ -72,7 +79,7 @@ export async function getViewHistory(userId: string, limit: number = 20): Promis
     return {
       id: item.products.id,
       name: item.products.name,
-      price: item.products.price,
+      price: formatPrice(item.products.price),
       image: item.products.image,
       slug: item.products.slug,
       time,

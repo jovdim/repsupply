@@ -221,14 +221,14 @@ export default function ProfilePage() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-4">
                   {savedItems.map((item) => (
                     <Link
                       key={item.id}
                       href={`/products/${item.slug}`}
-                      className="bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all group cursor-pointer"
+                      className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group"
                     >
-                      <div className="relative aspect-square bg-neutral-900">
+                      <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
                         <ImageWithSkeleton
                           src={item.image}
                           alt={item.name}
@@ -238,11 +238,11 @@ export default function ProfilePage() {
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       </div>
-                      <div className="p-2">
-                        <div className="font-bold text-white text-xs mb-0.5">
+                      <div className="p-3 md:p-4">
+                        <div className="font-bold text-white text-sm md:text-base mb-0.5">
                           {item.price}
                         </div>
-                        <h3 className="text-text-muted text-[10px] line-clamp-1 group-hover:text-white transition-colors">
+                        <h3 className="text-text-muted text-[10px] md:text-sm line-clamp-2 group-hover:text-white transition-colors">
                           {item.name}
                         </h3>
                       </div>
@@ -288,14 +288,14 @@ export default function ProfilePage() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-4">
                   {historyItems.map((item, idx) => (
                     <Link
                       key={`${item.id}-${idx}`}
                       href={`/products/${item.slug}`}
-                      className="bg-bg-card border border-white/5 rounded-xl overflow-hidden hover:border-white/20 transition-all group cursor-pointer relative"
+                      className="bg-bg-card border border-white/5 rounded-xl overflow-hidden active:scale-95 md:active:scale-100 hover:border-white/20 hover:shadow-2xl transition-all cursor-pointer group relative"
                     >
-                      <div className="relative aspect-square bg-neutral-900">
+                      <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
                         <ImageWithSkeleton
                           src={item.image}
                           alt={item.name}
@@ -312,11 +312,11 @@ export default function ProfilePage() {
                            </div>
                         </div>
                       </div>
-                      <div className="p-2">
-                        <div className="font-bold text-white text-xs mb-0.5">
+                      <div className="p-3 md:p-4">
+                        <div className="font-bold text-white text-sm md:text-base mb-0.5">
                            {item.price}
                         </div>
-                        <h3 className="text-text-muted text-[10px] line-clamp-1 group-hover:text-white transition-colors">
+                        <h3 className="text-text-muted text-[10px] md:text-sm line-clamp-2 group-hover:text-white transition-colors">
                           {item.name}
                         </h3>
                       </div>

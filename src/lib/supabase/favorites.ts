@@ -1,5 +1,12 @@
 import { createClient } from "@/lib/supabase/client";
 
+function formatPrice(raw: string): string {
+  const num = parseFloat(raw?.toString().replace(/[^0-9.]/g, "") || "0");
+  if (num > 0 && !/[^0-9.,\s]/.test(raw)) return `$${num.toFixed(2)}`;
+  if (num > 0 && raw.includes("$")) return `$${num.toFixed(2)}`;
+  return raw;
+}
+
 /**
  * Add a product to the user's favorites.
  * Accepts userId to avoid redundant auth.getUser() calls.
@@ -69,7 +76,7 @@ export async function getFavorites(userId: string): Promise<any[]> {
   return data.map((fav: any) => ({
     id: fav.products.id,
     name: fav.products.name,
-    price: fav.products.price,
+    price: formatPrice(fav.products.price),
     image: fav.products.image,
     slug: fav.products.slug,
   }));
