@@ -279,12 +279,12 @@ export default function ProductDetailPage({
             </h1>
 
             {/* Price */}
-            <div className="text-3xl md:text-4xl font-bold text-white mb-5">
+            <div className="text-3xl md:text-4xl font-bold text-white mb-2">
               {product.price}
             </div>
 
             {/* Description */}
-            <p className="text-text-secondary text-sm md:text-base leading-relaxed mb-8">
+            <p className="text-text-secondary text-sm md:text-base leading-relaxed mb-2">
               {product.description}
             </p>
 
