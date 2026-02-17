@@ -58,7 +58,7 @@ export async function getFavorites(userId: string): Promise<any[]> {
       id,
       created_at,
       products (
-        id, name, price, image
+        id, name, price, image, slug
       )
     `)
     .eq("user_id", userId)
@@ -71,5 +71,6 @@ export async function getFavorites(userId: string): Promise<any[]> {
     name: fav.products.name,
     price: fav.products.price,
     image: fav.products.image,
+    slug: fav.products.slug,
   }));
 }

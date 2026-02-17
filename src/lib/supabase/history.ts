@@ -36,7 +36,7 @@ export async function getViewHistory(userId: string, limit: number = 20): Promis
     .from("view_history")
     .select(`
       id, viewed_at, product_id,
-      products ( id, name, price, image )
+      products ( id, name, price, image, slug )
     `)
     .eq("user_id", userId)
     .order("viewed_at", { ascending: false })
@@ -74,6 +74,7 @@ export async function getViewHistory(userId: string, limit: number = 20): Promis
       name: item.products.name,
       price: item.products.price,
       image: item.products.image,
+      slug: item.products.slug,
       time,
     };
   });
