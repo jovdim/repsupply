@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
     { label: "Products", value: stats.products, icon: Package, href: "/admin/products" },
     { label: "Categories", value: stats.categories, icon: Tags, href: "/admin/categories" },
     { label: "Yupoo Stores", value: stats.yupooStores, icon: Store, href: "/admin/yupoo-stores" },
-    { label: "Total Images", value: stats.qcImages, icon: ImageIcon, href: "#" }, // No direct link for images yet, or point to qc-images?
+    { label: "QC Images", value: stats.qcImages, icon: ImageIcon, href: "#" }, // No direct link for images yet, or point to qc-images?
     { label: "QC Sets", value: stats.qcGroups, icon: Layers, href: "/admin/qc-images" },
   ];
 
