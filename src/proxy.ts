@@ -36,9 +36,9 @@ interface RouteLimit {
 }
 
 const ROUTE_LIMITS: Record<string, RouteLimit> = {
-  "/login":  { windowMs: 60_000, maxRequests: 10 },
-  "/signup": { windowMs: 60_000, maxRequests: 5 },
-  "/admin":  { windowMs: 60_000, maxRequests: 60 },
+  "/login":  { windowMs: 60_000, maxRequests: 120 },
+  "/signup": { windowMs: 60_000, maxRequests: 120 },
+  "/admin":  { windowMs: 60_000, maxRequests: 120 },
   default:   { windowMs: 60_000, maxRequests: 120 },
 };
 
